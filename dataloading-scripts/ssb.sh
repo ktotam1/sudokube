@@ -1,6 +1,6 @@
 #!/bin/bash
 
-sf=100
+sf=1 #100
 mkdir -p tabledata/SSB/sf$sf/uniq
 
 #Generate data

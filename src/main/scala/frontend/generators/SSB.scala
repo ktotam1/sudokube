@@ -204,29 +204,30 @@ object SSBGen {
 
     val params = List(
       //(15, 18),
-      (15, 14),
-      (15, 10), (15, 6),
-      (12, 14), (9, 14), (6, 14)
+      //(15, 14),
+      //(15, 10), (15, 6),
+      //(12, 14), (9, 14), (6, 14)
+      (9, 14)
     )
     val maxD = 30 // >15+14, so never passes threshold
 
     if ((arg equals "base") || (arg equals "all")) {
       implicit val backend = CBackend.default
-      val cg = SSB(100)
+      val cg = SSB(1) //100
       if(resetSeed) scala.util.Random.setSeed(seedValue)
       cg.saveBase()
     }
 
     if ((arg equals "RMS") || (arg equals "all")) {
       implicit val backend = CBackend.default
-      val cg = SSB(100)
+      val cg = SSB(1) //100
       if(resetSeed) scala.util.Random.setSeed(seedValue)
       params.foreach { case (logN, minD) => cg.saveRMS(logN, minD, maxD) }
     }
 
     if ((arg equals "SMS") || (arg equals "all")) {
       implicit val backend = CBackend.default
-      val cg = SSB(100)
+      val cg = SSB(1)//100
       if(resetSeed) scala.util.Random.setSeed(seedValue)
       params.foreach { case (logN, minD) => cg.saveSMS(logN, minD, maxD) }
     }

@@ -136,28 +136,28 @@ class OnlineSamplingExperiment(ename2: String = "")(implicit timestampedFolder: 
     val numGroups = numWords >> groupSize
     val pi = new ProgressIndicator(numGroups, "\t Sampling", false)
     Profiler("Sampling") {
-    (0 to numGroups).foreach { i =>
-      Profiler("Fetch") {
-        (0 until 1 << groupSize).foreach { j =>
-          val s = cuboid.projectFetch64((i << groupSize) + j, mask)
-          solver.addSample(s)
+      (0 to numGroups).foreach { i =>
+        Profiler("Fetch") {
+          (0 until 1 << groupSize).foreach { j =>
+            val s = cuboid.projectFetch64((i << groupSize) + j, mask)
+            solver.addSample(s)
+          }
         }
+        val result = Profiler("Solve") { solver.solve() }
+        println(s"Sample $i/$numGroups " + result.mkString(" "))
+        val fetchTime = Profiler.getDurationMicro("Fetch")
+        val solveTime = Profiler.getDurationMicro("Solve")
+        val totalTime = prepareTime + fetchTime + solveTime
+        val errorfull = SolverTools.error(trueResult, result)
+        def slice(res: Array[Double]) = util.Util.slice(res, sliceValues)
+        val errorslice = SolverTools.error(slice(trueResult), slice(result))
+        println("\t Slice values " + slice(trueResult).mkString("[", " ", "]" ) +  "  " + slice(result).mkString("[", " ", "]" ))
+        val errorMax = SolverTools.errorMax(trueResult, result)
+        val fraction = (i + 1).toDouble / (numGroups + 1)
+        fileout.println(common + s"$fraction,$totalTime,$prepareTime,$fetchTime,$solveTime,$errorfull,$errorslice,$errorMax")
+        pi.step
       }
-      val result = Profiler("Solve") { solver.solve() }
-      println(s"Sample $i/$numGroups " + result.mkString(" "))
-      val fetchTime = Profiler.getDurationMicro("Fetch")
-      val solveTime = Profiler.getDurationMicro("Solve")
-      val totalTime = prepareTime + fetchTime + solveTime
-      val errorfull = SolverTools.error(trueResult, result)
-      def slice(res: Array[Double]) = util.Util.slice(res, sliceValues)
-      val errorslice = SolverTools.error(slice(trueResult), slice(result))
-      println("\t Slice values " + slice(trueResult).mkString("[", " ", "]" ) +  "  " + slice(result).mkString("[", " ", "]" ))
-      val errorMax = SolverTools.errorMax(trueResult, result)
-      val fraction = (i + 1).toDouble / (numGroups + 1)
-      fileout.println(common + s"$fraction,$totalTime,$prepareTime,$fetchTime,$solveTime,$errorfull,$errorslice,$errorMax")
-      pi.step
     }
-  }
     Profiler.print()
   }
   def runMomentOnline(groupSize: Int, version: String)(dc: DataCube, dcname: String, qu: IndexedSeq[Int], trueResult: Array[Double]) = {
@@ -270,8 +270,8 @@ class OnlineSamplingExperiment(ename2: String = "")(implicit timestampedFolder: 
     //runMomentBatch(dc, dcname, qu, trueResult)
     //runIPFBatch(dc, dcname, qu, trueResult)
     //runIPF2Batch(dc, dcname, qu, trueResult)
-    runNaiveOnline(14)(dc, dcname, qu, trueResult, sliceValues)
-    //runMomentOnline(14, "V1")(dc, dcname, qu, trueResult)
+    //runNaiveOnline(14)(dc, dcname, qu, trueResult, sliceValues)
+    runMomentOnline(14, "V1")(dc, dcname, qu, trueResult)
     //runMomentOnline(14, "V2")(dc, dcname, qu, trueResult)
     //runMomentOnline(14, "V3")(dc, dcname, qu, trueResult)
     //runIPFOnline(14, "mix")(dc, dcname, qu, trueResult)
@@ -286,35 +286,45 @@ object OnlineSamplingExperiment extends ExperimentRunner {
       case n: NYC => (18, 40)
       case s: SSB => (14, 30)
     }
-    val logN = 15
+    val logN = 9//15
     val dc = if (isSMS) cg.loadSMS(logN, minD, maxD) else cg.loadRMS(logN, minD, maxD)
     dc.loadPrimaryMoments(cg.baseName)
+    val sch = cg.schemaInstance
     val ename = s"${cg.inputname}-$isSMS-qsize"
     val expt = new OnlineSamplingExperiment(ename)
     //val mqr = new MaterializedQueryResult(cg, isSMS)  //for loading pre-generated queries and results
     Vector(10, 12, 14, 18).reverse.map { qs =>
-      val queries = (0 until numIters).map
+      val queries = (0 until numIters).map //needs to be changed to meet the condition,generate up to 100, not just filter
       { i => Tools.generateQuery(isSMS, cg.schemaInstance, qs) } //generate fresh queries
       //val queries = mqr.loadQueries(qs).take(numIters)
       queries.zipWithIndex.foreach { case (q, qidx) =>
-        val trueResult = dc.naive_eval(q)
-        //val trueResult = mqr.loadQueryResult(qs, qidx)
-        expt.run(dc, dc.cubeName, q, trueResult)
+        val preparedNaive = dc.index.prepareNaive(q)
+        if(preparedNaive.head.cuboidCost == sch.n_bits)//check whether cuboid is basecuboid:last cuboid in datacube, when cuboidcost equals to the total number of dim, it is the basecuboid
+        {
+          val trueResult = dc.naive_eval(q)
+          //val trueResult = mqr.loadQueryResult(qs, qidx)
+          expt.run(dc, dc.cubeName, q, trueResult)
+        }
+        //otherwise, w
+        else
+        {
+          println(s"skipping query $q that does not use basecuboid in NaiveSolver")
+        }
       }
     }
     be.reset
   }
   def main(args: Array[String]): Unit = {
     implicit val be = CBackend.default
-    val nyc = new NYC()
-    val ssb = new SSB(100)
-
+    //val nyc = new NYC()
+    //val ssb = new SSB(100)
+    val ssb = new SSB(1)
     def func(param: String)(timestamp: String, numIters: Int) = {
       implicit val ni = numIters
       implicit val ts = timestamp
       param match {
-        case "qsize-nyc-prefix" => qsize(nyc, true)
-        case "qsize-nyc-random" => qsize(nyc, false)
+        //case "qsize-nyc-prefix" => qsize(nyc, true)
+        //case "qsize-nyc-random" => qsize(nyc, false)
 
         case "qsize-ssb-prefix" => qsize(ssb, true)
         case "qsize-ssb-random" => qsize(ssb, false)
