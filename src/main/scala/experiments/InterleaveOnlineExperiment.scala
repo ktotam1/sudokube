@@ -40,6 +40,7 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
       val primMoments = SolverTools.preparePrimaryMomentsForQuery[Double](q, dc.primaryMoments)
       val s = new MomentSamplingSolver(q.size, primMoments, version, cuboid.size.toDouble)
       val pms_iterator = dc.index.prepareBatch(q).iterator
+      val pms_iter = dc.index.prepareBatch(q)
       val numWords = ((cuboid.size + 63) >> 6).toInt
       val numGroups = numWords >> groupSize
       val pi = new ProgressIndicator(numGroups, "\t Sampling")
@@ -54,20 +55,27 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
     //val fetched_sample = cuboid.projectFetch64((samples_iterator.next()._1 << groupSize) + samples_iterator.next()._2, mask)
     var flag: Int = 1
     var sample_num = 0
-
+    val a_test = Iterator.range(1, 5)
+    val b_test = a_test.take(10).toList
+    b_test.foreach(println)
     while(samples_iterator.hasNext || pms.hasNext) {
-      println("Start Loop")
+      //println("Start Loop")
+
       flag = -flag
       if(flag == 1) {
         val fetched_pms = Profiler("Fetch") {
-          Iterator.fill(increment_pm) {
-            if (!pms.hasNext) {
-              break
-            }
-            val current_pm = pms.next()
+            val take_pm = pms.take(increment_pm)
+            val pm_list = take_pm.toList
+            val pm_iter = pm_list.iterator
+            Iterator.fill(pm_list.length)
+          {
+            val current_pm = pm_iter.next()
             (current_pm.queryIntersection, dc.fetch2[Double](List(current_pm)))
           }
         }
+
+
+
         initResult = if (version == "V1") {
           Profiler("Solve") {
             fetched_pms.foreach(current_pm =>
@@ -82,20 +90,13 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
       }
       else {
         val fetched_samples = Profiler("Fetch"){
-          Iterator.fill(increment_pm) {
-            if (!samples_iterator.hasNext) {
-              break
-            }
-            val current_sample = samples_iterator.next()
-            /*
-            (0 until 1 << groupSize).foreach { j =>
-              val s = cuboid.projectFetch64((i << groupSize) + j, mask)
-              solver.addSample(s)
-            }
-            */
-
-            val fetched_sample = cuboid.projectFetch64((current_sample._1 << groupSize) + current_sample._2, mask)
-            fetched_sample
+          val take_sample = samples_iterator.take(increment_sample)
+          val sample_list = take_sample.toList
+          val sample_iter = sample_list.iterator
+          Iterator.fill(sample_list.length) {
+            val current_sample = sample_iter.next()
+            val s = cuboid.projectFetch64((current_sample._1 << groupSize) + current_sample._2, mask)
+            s
           }
         }
         initResult = if (version == "V1") {
@@ -120,8 +121,6 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
       else{
         sample_num = 1 << groupSize * (numGroups + 1)
       }
-      //val pm = pms.next()
-      //val fetched_pm = (pm.queryIntersection, dc.fetch2[Double](List(pm)))
       val initError = SolverTools.error(trueResult, initResult)
 
       def fetchTime = Profiler.getDurationMicro("Fetch")
@@ -133,7 +132,6 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
       val fraction = sample_num.toDouble / ((numGroups + 1) * (1 << groupSize))
       fileout.println(common + s"$fraction,$totalTime,$prepareTime,$fetchTime,$solveTime,$initError")
     }
-
 
 
     val result = Profiler("Solve") {
@@ -152,8 +150,8 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
   }
 
   override def run(dc: DataCube, dcname: String, qu: IndexedSeq[Int], trueResult: Array[Double], output: Boolean = true, qname: String = "", sliceValues: Seq[(Int, Int)] = Nil): Unit = {
-    val increment_pm = 5
-    val increment_sample = 10
+    val increment_pm = 2
+    val increment_sample = 30
     runInterleavingOnline(14, "V1", increment_pm, increment_sample)(dc, dcname, qu, trueResult)
 
   }
@@ -172,7 +170,7 @@ object InterleaveOnlineExperiment extends ExperimentRunner {
     val ename = s"${cg.inputname}-$isSMS-qsize"
     val expt = new InterleaveOnlineExperiment(ename)
     //val mqr = new MaterializedQueryResult(cg, isSMS)  //for loading pre-generated queries and results
-    val query_dim = Vector(10, 12, 14, 16, 18, 20, 22, 24).reverseIterator
+    val query_dim = Vector(10, 12, 14, 18).reverseIterator
     while(query_dim.hasNext)
       {
         var generator_counts = 0
