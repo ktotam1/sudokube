@@ -16,7 +16,7 @@ def plot(input):
 
     #budget -> querysize -> dimlevel -> runs
     errorXtime = defaultdict(lambda: {})
-    timeXfraction = defaultdict(lambda: {})
+    #timeXfraction = defaultdict(lambda: {})
     errorXfraction = defaultdict(lambda: {})
 
     with open(input) as fh:
@@ -33,7 +33,7 @@ def plot(input):
             solvers.add(solver)
             fraction = float(row['FractionOfSamples'])
             time = float(row['ElapsedTotalTime'])/timescale
-            error = float(row['L1Error']) * errorFactor
+            error = float(row['Error']) * errorFactor
             if(solver != prevSolver):
                 prevError = errorFactor
                 errorXtime[solver][-epsilon] = prevError
@@ -61,11 +61,11 @@ cubeGenerator = 'SSB'
 matalgo = 'prefix'
 title = f"{cubeGenerator} {matalgo}"
 minD = 9
-plot(f'expdata/online-sampling/202310/15/133445/SSB-sf1-true-qsize_ipf-moment.csv')
+plot(f'expdata/online-sampling/202310/20/211842/SSB-sf1-true-qsize_interleaving.csv')
 
 fig.suptitle(title,fontsize='xx-large', fontweight='heavy')
 plt.subplots_adjust(hspace=0.4, wspace=0.5)
-plt.savefig(f'figs/online-sampling/{cubeGenerator}_{matalgo}_{minD}.pdf', bbox_inches = 'tight', pad_inches=0.01)
+plt.savefig(f'figs/online-sampling/{cubeGenerator}_{matalgo}_{minD}_20231020.pdf', bbox_inches = 'tight', pad_inches=0.01)
 
 
 
