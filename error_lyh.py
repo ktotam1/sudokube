@@ -61,11 +61,11 @@ cubeGenerator = 'SSB'
 matalgo = 'prefix'
 title = f"{cubeGenerator} {matalgo}"
 minD = 9
-plot(f'expdata/online-sampling/202310/20/225704/SSB-sf1-true-qsize_interleaving.csv')
+plot(f'expdata/online-sampling/202310/21/133711/SSB-sf1-true-qsize_interleaving.csv')
 
 fig.suptitle(title,fontsize='xx-large', fontweight='heavy')
 plt.subplots_adjust(hspace=0.4, wspace=0.5)
-plt.savefig(f'figs/online-sampling/{cubeGenerator}_{matalgo}_{minD}_20231020.pdf', bbox_inches = 'tight', pad_inches=0.01)
+plt.savefig(f'figs/online-sampling/{cubeGenerator}_{matalgo}_{minD}_20231021_only_samples.pdf', bbox_inches = 'tight', pad_inches=0.01)
 
 
 

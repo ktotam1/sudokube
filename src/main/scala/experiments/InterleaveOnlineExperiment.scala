@@ -63,6 +63,10 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
     while(samples_iterator.hasNext || pms.hasNext) {
       //println("Start Loop")
       if(flag == 1) {
+        flag = - flag
+      }
+      /*
+      if(flag == 1) {
         if(all_cuboids_finished == 0)
         {
           val fetched_pms = Profiler("Fetch") {
@@ -102,6 +106,8 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
         }
         flag = -flag
       }
+
+       */
       else {
         if(all_samples_finished == 0)
           {
@@ -127,7 +133,7 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
             }
             if (samples_iterator.isEmpty) {
               all_samples_finished = 1
-              fileout.println("All samples are added to the solver.")
+              //fileout.println("All samples are added to the solver.")
             }
             if (samples_iterator.hasNext) {
               sample_num = sample_num + increment_sample

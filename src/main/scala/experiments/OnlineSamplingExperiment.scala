@@ -270,8 +270,8 @@ class OnlineSamplingExperiment(ename2: String = "")(implicit timestampedFolder: 
     //runMomentBatch(dc, dcname, qu, trueResult)
     //runIPFBatch(dc, dcname, qu, trueResult)
     //runIPF2Batch(dc, dcname, qu, trueResult)
-    //runNaiveOnline(14)(dc, dcname, qu, trueResult, sliceValues)
-    runMomentOnline(14, "V1")(dc, dcname, qu, trueResult)
+    runNaiveOnline(14)(dc, dcname, qu, trueResult, sliceValues)
+    //runMomentOnline(14, "V1")(dc, dcname, qu, trueResult)
     //runMomentOnline(14, "V2")(dc, dcname, qu, trueResult)
     //runMomentOnline(14, "V3")(dc, dcname, qu, trueResult)
     //runIPFOnline(14, "mix")(dc, dcname, qu, trueResult)
@@ -293,6 +293,23 @@ object OnlineSamplingExperiment extends ExperimentRunner {
     val ename = s"${cg.inputname}-$isSMS-qsize"
     val expt = new OnlineSamplingExperiment(ename)
     //val mqr = new MaterializedQueryResult(cg, isSMS)  //for loading pre-generated queries and results
+    val query_dim = Vector(18).reverseIterator
+    while (query_dim.hasNext) {
+      var generator_counts = 0
+      val qs = query_dim.next()
+      while (generator_counts < numIters) {
+        val query = Tools.generateQuery(isSMS, cg.schemaInstance, qs)
+        val prepareNaive = dc.index.prepareNaive(query)
+        if (prepareNaive.head.cuboidCost == sch.n_bits) {
+          val trueResult = dc.naive_eval(query)
+          expt.run(dc, dc.cubeName, query, trueResult)
+          generator_counts += 1
+        }
+        else {
+          println(s"skipping query $query that does not use basecuboid in NaiveSolver")
+        }
+      }
+      /*
     Vector(10, 12, 14, 18).reverse.map { qs =>
       val queries = (0 until numIters).map //needs to be changed to meet the condition,generate up to 100, not just filter
       { i => Tools.generateQuery(isSMS, cg.schemaInstance, qs) } //generate fresh queries
@@ -312,7 +329,9 @@ object OnlineSamplingExperiment extends ExperimentRunner {
         }
       }
     }
-    be.reset
+     */
+      be.reset
+    }
   }
   def main(args: Array[String]): Unit = {
     implicit val be = CBackend.default
