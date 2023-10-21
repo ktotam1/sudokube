@@ -32,7 +32,7 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
     Profiler.resetAll()
     println(s"Running $algo")
 
-    val (solver, cuboid, mask, pms, numWords,numGroups, pi) = Profiler(s"Prepare") {
+    val (solver, naive_solver, cuboid, mask, pms, numWords,numGroups, pi) = Profiler(s"Prepare") {
       val pm = dc.index.prepareNaive(q).head
       val be = dc.cuboids.head.backend
       val cuboid = dc.cuboids(pm.cuboidID).asInstanceOf[be.SparseCuboid]
@@ -45,13 +45,15 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
       val numGroups = numWords >> groupSize
       val pi = new ProgressIndicator(numGroups, "\t Sampling")
       val s = new MomentSamplingSolver(q.size, primMoments, version, numGroups * (1 << groupSize) * 64)
-      (s, cuboid, pm.cuboidIntersection, pms_iterator,numWords,numGroups,pi )
+      val naive_s = new NaiveSamplingSolver(q.size, numGroups  * (1 << groupSize) * 64)
+      (s, naive_s, cuboid, pm.cuboidIntersection, pms_iterator,numWords,numGroups,pi )
     }
     println(s"\t  Prepare Done")
     val prepareTime = Profiler.getDurationMicro("Prepare")
 
     var initResult:Array[Double] = Array.fill(trueResult.size)(0.0)
-    val samples_iterator = (1 to numGroups).flatMap(i=> (1 to  1 << groupSize).map(j => (i, j))).iterator
+    val samples_iterator = (0 to (numGroups-1)).flatMap(i => (0 to  ((1 << groupSize)-1)).map(j => (i, j))).iterator
+    //val samples_iterator = (1 to numGroups).flatMap(i => (1 to (1 << groupSize)).map(j => (i, j))).iterator
     //val samples_iterator = (1 to numGroups).iterator
     //val fetched_sample = cuboid.projectFetch64((samples_iterator.next()._1 << groupSize) + samples_iterator.next()._2, mask)
     var flag: Int = 1
@@ -60,12 +62,14 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
     var all_samples_finished = 0
     var all_cuboids_finished = 0
 
-    while(samples_iterator.hasNext || pms.hasNext) {
+    while(samples_iterator.hasNext || pms.hasNext)
+    //while(samples_iterator.hasNext)
+      {
       //println("Start Loop")
-      if(flag == 1) {
-        flag = - flag
-      }
-      /*
+      //if(flag == 1) {
+      //  flag = - flag
+      //}
+
       if(flag == 1) {
         if(all_cuboids_finished == 0)
         {
@@ -107,7 +111,6 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
         flag = -flag
       }
 
-       */
       else {
         if(all_samples_finished == 0)
           {
@@ -125,7 +128,9 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
               Profiler("Solve") {
                 fetched_samples.foreach(current_sample =>
                   solver.addSample(current_sample))
+                  //naive_solver.addSample(current_sample))
                 solver.solve()
+                //naive_solver.solve()
               }
             }
             else {
@@ -193,7 +198,7 @@ object InterleaveOnlineExperiment extends ExperimentRunner {
     val expt = new InterleaveOnlineExperiment(ename)
     //val mqr = new MaterializedQueryResult(cg, isSMS)  //for loading pre-generated queries and results
     //val query_dim = Vector(10, 12, 14, 18).reverseIterator
-    val query_dim = Vector(10, 12, 14, 18).reverseIterator
+    val query_dim = Vector(18).reverseIterator
     while(query_dim.hasNext)
       {
         var generator_counts = 0
