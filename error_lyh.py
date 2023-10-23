@@ -24,8 +24,8 @@ def plot(input):
         reader = csv.DictReader(fh, fieldnames=header)
         data = list(reader)
         timescale=1000.0 * 1000.0
-        errorFactor = 0.5
-        prevError = 0
+        errorFactor = 1
+        prevError = 1
         prevSolver = ""
         epsilon = 0.00001
         for row in data:
@@ -61,11 +61,11 @@ cubeGenerator = 'SSB'
 matalgo = 'prefix'
 title = f"{cubeGenerator} {matalgo}"
 minD = 9
-plot(f'expdata/online-sampling/202310/21/162820/SSB-sf1-true-qsize_interleaving.csv')
+plot(f'expdata/online-sampling/202310/23/153843/SSB-sf1-true-qsize_interleaving.csv')
 
 fig.suptitle(title,fontsize='xx-large', fontweight='heavy')
 plt.subplots_adjust(hspace=0.4, wspace=0.5)
-plt.savefig(f'figs/online-sampling/{cubeGenerator}_{matalgo}_{minD}_20231021_only_sample.pdf', bbox_inches = 'tight', pad_inches=0.01)
+plt.savefig(f'figs/online-sampling/{cubeGenerator}_{matalgo}_{minD}_20231023_test_method_1_without_prepare_time2.pdf', bbox_inches = 'tight', pad_inches=0.01)
 
 
 

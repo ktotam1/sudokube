@@ -221,22 +221,22 @@ object InterleavingOnlineSampling extends ExperimentRunner {
     Vector(10, 12, 14, 18).reverse.map{
       qs =>
 
-      val queries = (0 until numIters).map //needs to be changed to meet the condition,generate up to 100, not just filter
-      { i => Tools.generateQuery(isSMS, cg.schemaInstance, qs) } //generate fresh queries
-      //val queries = mqr.loadQueries(qs).take(numIters)
-      queries.zipWithIndex.foreach { case (q, qidx) =>
-        val preparedNaive = dc.index.prepareNaive(q)
-        if (preparedNaive.head.cuboidCost == sch.n_bits) //check whether cuboid is basecuboid:last cuboid in datacube, when cuboidcost equals to the total number of dim, it is the basecuboid
-        {
-          val trueResult = dc.naive_eval(q)
-          //val trueResult = mqr.loadQueryResult(qs, qidx)
-          expt.run(dc, dc.cubeName, q, trueResult)
+        val queries = (0 until numIters).map //needs to be changed to meet the condition,generate up to 100, not just filter
+        { i => Tools.generateQuery(isSMS, cg.schemaInstance, qs) } //generate fresh queries
+        //val queries = mqr.loadQueries(qs).take(numIters)
+        queries.zipWithIndex.foreach { case (q, qidx) =>
+          val preparedNaive = dc.index.prepareNaive(q)
+          if (preparedNaive.head.cuboidCost == sch.n_bits) //check whether cuboid is basecuboid:last cuboid in datacube, when cuboidcost equals to the total number of dim, it is the basecuboid
+          {
+            val trueResult = dc.naive_eval(q)
+            //val trueResult = mqr.loadQueryResult(qs, qidx)
+            expt.run(dc, dc.cubeName, q, trueResult)
+          }
+          //otherwise, w
+          else {
+            println(s"skipping query $q that does not use basecuboid in NaiveSolver")
+          }
         }
-        //otherwise, w
-        else {
-          println(s"skipping query $q that does not use basecuboid in NaiveSolver")
-        }
-      }
     }
     be.reset
   }
