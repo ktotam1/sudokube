@@ -43,7 +43,11 @@ class ZipfGenerator(alpha:Double = 1.1)(implicit backend: CBackend) extends Cube
     val bit15 = new LD2("Bit_15", new StaticMemCol[Int](1, Vector(0,1)))
     val bit16 = new LD2("Bit_16", new StaticMemCol[Int](1, Vector(0,1)))
     val bit17 = new LD2("Bit_17", new StaticMemCol[Int](1, Vector(0,1)))
-    new StaticSchema2(Vector(bit0,bit1,bit2,bit3,bit4,bit5,bit6,bit7,bit8,bit9,bit10,bit11,bit12,bit13,bit14,bit15,bit16,bit17))
+    val bit18 = new LD2("Bit_18", new StaticMemCol[Int](1, Vector(0,1)))
+    val bit19 = new LD2("Bit_19", new StaticMemCol[Int](1, Vector(0,1)))
+    val bit20 = new LD2("Bit_20", new StaticMemCol[Int](1, Vector(0,1)))
+
+    new StaticSchema2(Vector(bit0,bit1,bit2,bit3,bit4,bit5,bit6,bit7,bit8,bit9,bit10,bit11,bit12,bit13,bit14,bit15,bit16,bit17,bit18,bit19,bit20))
   }
 }
 object ZipfGenerator {
