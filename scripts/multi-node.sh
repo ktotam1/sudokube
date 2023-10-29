@@ -11,7 +11,7 @@ fi
 jobname=$1
 
 timestamp=`date +"%Y%m/%d/%H%M%S"`
-numIters=1
+numIters=10
 echo echo "Executing job $jobname with $numIters iterations starting at $timestamp"
 #Run experiments
 parallel --no-run-if-empty --colsep ' ' --env PATH  -S $hostsWithCores --wd /var/data/sudokube/sudokube --tag --lb sbt --error \"runMain {1} {2} $timestamp $numIters\" :::: scripts/jobs/${jobname}

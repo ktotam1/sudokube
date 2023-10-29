@@ -246,10 +246,23 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
               }
               fetched_pms_list
             }
+          /*
           initResult = if (version == "V1") {
             Profiler("Solve") {
               fetched_pms.foreach(current_pm =>
                 solver.addCuboid(current_pm._1, current_pm._2))
+              solver.solve()
+            }
+          }
+
+           */
+          if (version == "V1") {
+            Profiler("Solve_1") {
+              fetched_pms.foreach(current_pm =>
+                solver.addCuboid(current_pm._1, current_pm._2))
+              //solver.solve()
+            }
+            Profiler("Solve_2") {
               solver.solve()
             }
           }
@@ -264,7 +277,9 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
 
           def fetchTime = Profiler.getDurationMicro("Fetch")
 
-          def solveTime = Profiler.getDurationMicro("Solve")
+          def solveTime_1 = Profiler.getDurationMicro("Solve_1")
+          def solveTime_2 = Profiler.getDurationMicro("Solve_2")
+          def solveTime = solveTime_1 + solveTime_2
 
           def totalTime = fetchTime + solveTime
 
@@ -276,6 +291,8 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
           fileout.println(common + s"$fraction,$totalTime,$prepareTime,$fetchTime,$solveTime,$initError")
         }
         flag = -flag
+        val ns: Seq[String] = Seq("Solve_2")
+        Profiler.reset(ns)
       }
 
       else {
@@ -310,10 +327,12 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
             }
           }
           initResult = if (version == "V1") {
-            Profiler("Solve") {
+            Profiler("Solve_1") {
               fetched_samples.foreach(current_sample =>
                 solver.addSample(current_sample))
               //solver.solve()
+            }
+            Profiler("Solve_2") {
               solver.solve()
             }
           }
@@ -335,9 +354,13 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
 
           def fetchTime = Profiler.getDurationMicro("Fetch")
 
-          def solveTime = Profiler.getDurationMicro("Solve")
+          def solveTime_1 = Profiler.getDurationMicro("Solve_1")
 
-          def totalTime = fetchTime + solveTime
+          def solveTime_2 = Profiler.getDurationMicro("Solve_2")
+
+          def solveTime = solveTime_1 + solveTime_2
+
+          def totalTime =  fetchTime + solveTime
 
           //def totalTime = prepareTime + fetchTime + solveTime
 
@@ -348,16 +371,18 @@ class InterleaveOnlineExperiment(ename2: String = "")(implicit timestampedfolder
         }
         flag = -flag
         fetched_tuples_for_cuboids = 0 //clear the fetch_cuboid_size, and wait for next update
+        val ns: Seq[String] = Seq("Solve_2")
+        Profiler.reset(ns)
       }
     }
   }
   override def run(dc: DataCube, dcname: String, qu: IndexedSeq[Int], trueResult: Array[Double], output: Boolean = true, qname: String = "", sliceValues: Seq[(Int, Int)] = Nil): Unit = {
     val increment_pm = 1
-    val increment_sample = 640
+    val increment_sample = 6400
     val alpha = 1.0
     val total_tuples = 1L << 17
-    //runInterleavingOnline_1(14, "V1", increment_pm, increment_sample, 1)(dc, dcname, qu, trueResult)
-    runInterleavingOnline_2(14, "V1", increment_pm, 640, 0.5, total_tuples)(dc, dcname, qu, trueResult)
+    runInterleavingOnline_1(14, "V1", increment_pm, increment_sample, 1)(dc, dcname, qu, trueResult)
+    //runInterleavingOnline_2(14, "V1", increment_pm, 640, 0.5, total_tuples)(dc, dcname, qu, trueResult)
   }
 }
 

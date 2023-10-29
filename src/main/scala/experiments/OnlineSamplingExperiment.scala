@@ -147,7 +147,7 @@ class OnlineSamplingExperiment(ename2: String = "")(implicit timestampedFolder: 
         println(s"Sample $i/$numGroups " + result.mkString(" "))
         val fetchTime = Profiler.getDurationMicro("Fetch")
         val solveTime = Profiler.getDurationMicro("Solve")
-        val totalTime = prepareTime + fetchTime + solveTime
+        val totalTime = fetchTime + solveTime //+ prepareTime
         val errorfull = SolverTools.error(trueResult, result)
         def slice(res: Array[Double]) = util.Util.slice(res, sliceValues)
         val errorslice = SolverTools.error(slice(trueResult), slice(result))
@@ -270,8 +270,8 @@ class OnlineSamplingExperiment(ename2: String = "")(implicit timestampedFolder: 
     //runMomentBatch(dc, dcname, qu, trueResult)
     //runIPFBatch(dc, dcname, qu, trueResult)
     //runIPF2Batch(dc, dcname, qu, trueResult)
-    //runNaiveOnline(14)(dc, dcname, qu, trueResult, sliceValues)
-    runMomentOnline(14, "V1")(dc, dcname, qu, trueResult)
+    runNaiveOnline(14)(dc, dcname, qu, trueResult, sliceValues)
+    //runMomentOnline(14, "V1")(dc, dcname, qu, trueResult)
     //runMomentOnline(14, "V2")(dc, dcname, qu, trueResult)
     //runMomentOnline(14, "V3")(dc, dcname, qu, trueResult)
     //runIPFOnline(14, "mix")(dc, dcname, qu, trueResult)
@@ -342,9 +342,6 @@ object OnlineSamplingExperiment extends ExperimentRunner {
       implicit val ni = numIters
       implicit val ts = timestamp
       param match {
-        //case "qsize-nyc-prefix" => qsize(nyc, true)
-        //case "qsize-nyc-random" => qsize(nyc, false)
-
         case "qsize-ssb-prefix" => qsize(ssb, true)
         case "qsize-ssb-random" => qsize(ssb, false)
       }
