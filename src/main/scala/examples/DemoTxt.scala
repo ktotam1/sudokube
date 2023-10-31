@@ -152,37 +152,73 @@ object DemoTxt {
     /**
     Load cube generator for sales data in file `tabledata/TinyData/data.csv``
      */
-    val cubeGenerator = new TinyDataStatic()
+    //val cubeGenerator = new TinyDataStatic()
+    val cubeGenerator = new ZipfGenerator()
     val schema = cubeGenerator.schemaInstance
 
-    val cubename = "mysalescube"
-
+    val cubename = "myzipfcube"
+    println("cubeGenerator has been prepared")
     /* ----------------- Building Data cube. TO BE RUN ONLY ONCE  -------------------*/
     /** Load base cuboid of the dataset and generate it if it does not exist
      * See also [[frontend.generators.CubeGenerator#saveBase()]] */
     val baseCuboid = cubeGenerator.loadBase(true)
 
+
+
     /** Define instance of [[core.materialization.MaterializationStrategy]]
      *  See also [[RandomizedMaterializationStrategy]], [[SchemaBasedMaterializationStrategy]]
      * */
 
-    val mstrat = new PresetMaterializationStrategy(schema.n_bits, Vector(
-      Vector(0, 1),
-      Vector(1, 3),
-      Vector(0, 2, 3),
+    println("Start preparing the mstrat")
+    val mstrat = PresetMaterializationStrategy(schema.n_bits, Vector(
+      Vector(1, 6, 9, 14, 16),
+      Vector(0, 3, 5, 8, 12),
+      Vector(5, 9, 12, 14, 17),
+      Vector(0, 9, 11, 15, 17),
+      Vector(0, 2, 6, 7, 11, 13),
+      Vector(6, 9, 10, 12, 13, 14),
+      Vector(1, 2, 4, 5, 8, 17),
+      Vector(4, 6, 7, 9, 14, 15),
+      Vector(0, 2, 6, 10, 13, 16, 17),
+      Vector(5, 6, 10, 12, 14, 15, 17),
+      Vector(4, 7, 8, 11, 12, 13, 15, 17),
+      Vector(3, 6, 8, 9, 11, 12, 13, 15),
+      Vector(6, 7, 10, 11, 12, 13, 14, 16),
+      Vector(2, 4, 7, 8, 9, 10, 13, 14, 15, 16),
+      Vector(1, 2, 3, 4, 6, 7, 11, 12, 13, 15),
+      Vector(8, 9, 10, 11, 12, 13, 14, 15, 16, 17),
+      Vector(9, 12, 13, 17),
+      Vector(4, 6, 7, 11),
+      Vector(6, 12, 15, 16),
+      Vector(2, 5, 9, 14),
       (0 until schema.n_bits) //base cuboid must be always included at last position
     ))
+    println("mstats has been prepared")
+
+    /*
+        val mstrat = new PresetMaterializationStrategy(schema.n_bits, Vector(
+          Vector(0, 1),
+          Vector(1, 3),
+          Vector(0, 2, 3),
+          (0 until schema.n_bits) //base cuboid must be always included at last position
+        ))
+
+     */
 
     /** Build data cube. See also [[frontend.generators.CubeGenerator#saveSMS(int, int, int)]] */
     /** We store as partial data cube with external reference to base cuboid to avoid storing
      * base cuboid twice */
     val dataCube = new PartialDataCube(cubename, cubeGenerator.baseName)
+    println("dataCube has been prepared")
     dataCube.buildPartial(mstrat)
     dataCube.save()
+    println("saved the dataCube")
     //Compute 1-D marginals and total
     dataCube.primaryMoments = SolverTools.primaryMoments(dataCube)
     dataCube.savePrimaryMoments(cubeGenerator.baseName)
-
+    val dc = PartialDataCube.load(cubename, cubeGenerator.baseName)
+    dc.loadPrimaryMoments(cubeGenerator.baseName)
+/*
     /*------------------------- Loading Data Cube ---------------------*/
     val dc = PartialDataCube.load(cubename, cubeGenerator.baseName)
     dc.loadPrimaryMoments(cubeGenerator.baseName)
@@ -248,6 +284,8 @@ object DemoTxt {
 
             NaiveTime: $naiveTime us
             """)
+
+ */
   }
 
 
@@ -530,7 +568,8 @@ object DemoTxt {
     //vanillaIPFSolver2()
     //momentSolver3()
     //demo()
-    genDynSchemaData()
+    //genDynSchemaData()
+    sales_demo()
     //demo2()
   }
 }

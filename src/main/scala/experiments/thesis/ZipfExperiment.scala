@@ -46,11 +46,12 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
       s.fillMissing()
       s.solve(true) //with heuristics to avoid negative values
     }
-    println(s"\t Moment Solve Done")
+    println(s"\t Moment Solve Done")gti
     val solveTime_Moment = Profiler.getDurationMicro(s"${algo_2}_Solve")
     val totalTime_Moment = prepareTime_Moment + fetchTime_Moment + solveTime_Moment
+    val error_Moment = SolverTools.error(trueResult, moment_result)
     fileout.println("MomentResult")
-    fileout.println(common_2+s"$alpha,$total_cuboid_cost,$totalTime_Moment,$fetchTime_Moment, $solveTime_Moment")
+    fileout.println(common_2+s"$alpha,$total_cuboid_cost,$totalTime_Moment,$fetchTime_Moment, $solveTime_Moment, $error_Moment")
 
     val (naive_solver, cuboid, mask, numWords, numGroups) = Profiler(s"${algo_1}_Prepare") {
       val pm = dc.index.prepareNaive(q).head
@@ -97,9 +98,11 @@ object ZipfExperiment extends ExperimentRunner {
     implicit val be = CBackend.default
     val sch = cg.schemaInstance
     val baseCuboid = cg.loadBase(true)
-    val cubename = "zipf"
+    //val cubename = "ZipfGenerator_base"
+    val cubename = "myzipfcube"
     val ename = "zipf_experiment"
     val expt = new ZipfExperiment()(ename)
+    /*
     val mstrat = PresetMaterializationStrategy(sch.n_bits, Vector(
       Vector(1, 6, 9, 14, 16),
       Vector(0, 3, 5, 8, 12),
@@ -129,7 +132,10 @@ object ZipfExperiment extends ExperimentRunner {
     dataCube.buildPartial(mstrat)
     dataCube.save()
     dataCube.primaryMoments = SolverTools.primaryMoments(dataCube)
+    */
     val dc = PartialDataCube.load(cubename, cg.baseName)
+    //dc.loadPrimaryMoments(cg.baseName)
+    //val dc = DataCube.load(cubename)
     dc.loadPrimaryMoments(cg.baseName)
 
 
@@ -158,7 +164,7 @@ object ZipfExperiment extends ExperimentRunner {
   }
   def main(args: Array[String]): Unit = {
     implicit val be = CBackend.default
-    val zipf = new ZipfGenerator()
+    val zipf = new ZipfGenerator(1.1)
 
     def func(param: String)(timestamp: String, numIters: Int) = {
       implicit val ni = numIters
