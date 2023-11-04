@@ -15,7 +15,7 @@ case class NYC()(implicit backend: CBackend) extends CubeGenerator("NYC") {
   override def generatePartitions(): IndexedSeq[(Int, Iterator[(BigBinary, Long)])] = {
     val join = (0 until 1000).map { i =>
       val num = String.format("%03d", Int.box(i))
-      val n2 = "all.part" + num + ".tsv"
+      val n2 = "K320N93kalpha11.part" + num + ".tbl"
       val size = read(n2).size
       size -> read(n2).map(r => schemaInstance.encode_tuple(r) -> 1L)
     }

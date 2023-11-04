@@ -1,17 +1,16 @@
 package experiments
 
 import backend.CBackend
-import core.materialization.PresetMaterializationStrategy
-import core.{DataCube, MaterializedQueryResult, PartialDataCube}
 import core.solver.SolverTools
 import core.solver.moment.CoMoment5SolverDouble
-import core.solver.sampling.{MomentSamplingSolver, NaiveSamplingSolver}
-import frontend.generators._
+import core.solver.sampling.NaiveSamplingSolver
+import core.{DataCube, PartialDataCube}
 import frontend.experiments.Tools
-import util.{Profiler, ProgressIndicator}
+import frontend.generators._
+import util.Profiler
 
+import java.io.PrintStream
 import scala.util.Random
-import java.io.{File, PrintStream}
 
 class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) extends Experiment (s"zipf", ename2, "zipf-expts"){
   val header = "CubeName,Query,QSize," +
@@ -27,6 +26,7 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
     val common_2 = s"$dcname,${qu.mkString(":")},${qu.size},$algo_2,"
     val common_3 = s"$dcname,${qu.mkString(":")},${qu.size},$algo_3,"
     Profiler.resetAll()
+    fileout.println(dc.index.n_bits)
     val (prepared, pm) = Profiler(s"${algo_2}_Prepare") {
       dc.index.prepareBatch(q) -> SolverTools.preparePrimaryMomentsForQuery[Double](q, dc.primaryMoments)
     }
@@ -46,23 +46,25 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
       s.fillMissing()
       s.solve(true) //with heuristics to avoid negative values
     }
-    println(s"\t Moment Solve Done")gti
+    println(s"\t Moment Solve Done")
     val solveTime_Moment = Profiler.getDurationMicro(s"${algo_2}_Solve")
     val totalTime_Moment = prepareTime_Moment + fetchTime_Moment + solveTime_Moment
     val error_Moment = SolverTools.error(trueResult, moment_result)
-    fileout.println("MomentResult")
+    //fileout.println("MomentResult")
+
     fileout.println(common_2+s"$alpha,$total_cuboid_cost,$totalTime_Moment,$fetchTime_Moment, $solveTime_Moment, $error_Moment")
 
-    val (naive_solver, cuboid, mask, numWords, numGroups) = Profiler(s"${algo_1}_Prepare") {
+    val (naive_solver, cuboid, mask, numWords) = Profiler(s"${algo_1}_Prepare") {
       val pm = dc.index.prepareNaive(q).head
       val be = dc.cuboids.head.backend
       val cuboid = dc.cuboids(pm.cuboidID).asInstanceOf[be.SparseCuboid]
       assert(cuboid.n_bits == dc.index.n_bits)
       val s = new NaiveSamplingSolver(q.size, cuboid.size.toDouble)
       val numWords = total_cuboid_cost >> 6
-      val numGroups = numWords >> groupSize
-      (s, cuboid, pm.cuboidIntersection, numWords, numGroups)
+
+      (s, cuboid, pm.cuboidIntersection, numWords)
     }
+    fileout.println(numWords)
     val prepareTime_Online = Profiler.getDurationMicro(s"${algo_1}_Prepare")
     cuboid.randomShuffle()
     println(s"\t NaiveSampling Prepare Done")
@@ -78,16 +80,16 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
     val solveTime_Online = Profiler.getDurationMicro(s"${algo_1}_Solve")
     val error_Online = SolverTools.error(trueResult, online_result)
     val totalTime_Online = prepareTime_Online + fetchTime_Online + solveTime_Online
-    fileout.println("OnlineResult")
+    //fileout.println("OnlineResult")
+
     fileout.println(common_1 + s"$alpha,$totalTime_Online,$prepareTime_Online,$fetchTime_Online,$solveTime_Online,$error_Online")
   }
 
   override def run(dc: DataCube, dcname: String, qu: IndexedSeq[Int], trueResult: Array[Double], output: Boolean = true, qname: String = "", sliceValues: Seq[(Int, Int)] = Nil): Unit = {
     val increment_pm = 1
     val increment_sample = 6400
-    val alpha = 1.0
-    val total_tuples = 1L << 17
-    run_ZipfExperiment(14, "V1", increment_pm, increment_sample,1, 1L)(dc, dcname, qu, trueResult)
+
+    run_ZipfExperiment(14, "V1", increment_pm, increment_sample,1.1, 1L)(dc, dcname, qu, trueResult)
     //runInterleavingOnline_2(14, "V1", increment_pm, 640, 0.5, total_tuples)(dc, dcname, qu, trueResult)
   }
 
@@ -96,52 +98,19 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
 object ZipfExperiment extends ExperimentRunner {
   def qsize(cg: CubeGenerator, isSMS:Boolean)(implicit timestampedFolder: String, numIters: Int, be: CBackend) = {
     implicit val be = CBackend.default
+    Random.setSeed(1024)
+    val (logN, minD, maxD) = (15, 10, 30)
     val sch = cg.schemaInstance
     val baseCuboid = cg.loadBase(true)
-    //val cubename = "ZipfGenerator_base"
-    val cubename = "myzipfcube"
-    val ename = "zipf_experiment"
-    val expt = new ZipfExperiment()(ename)
-    /*
-    val mstrat = PresetMaterializationStrategy(sch.n_bits, Vector(
-      Vector(1, 6, 9, 14, 16),
-      Vector(0, 3, 5, 8, 12),
-      Vector(5, 9, 12, 14, 17),
-      Vector(0, 9, 11, 15, 17),
-      Vector(0, 2, 6, 7, 11, 13),
-      Vector(6, 9, 10, 12, 13, 14),
-      Vector(1, 2, 4, 5, 8, 17),
-      Vector(4, 6, 7, 9, 14, 15),
-      Vector(0, 2, 6, 10, 13, 16, 17),
-      Vector(5, 6, 10, 12, 14, 15, 17),
-      Vector(4, 7, 8, 11, 12, 13, 15, 17),
-      Vector(3, 6, 8, 9, 11, 12, 13, 15),
-      Vector(6, 7, 10, 11, 12, 13, 14, 16),
-      Vector(2, 4, 7, 8, 9, 10, 13, 14, 15, 16),
-      Vector(1, 2, 3, 4, 6, 7, 11, 12, 13, 15),
-      Vector(8, 9, 10, 11, 12, 13, 14, 15, 16, 17),
-      Vector(2, 3, 4, 5, 8, 9, 10, 11, 12, 14, 13, 16),
-      Vector(9, 12, 13, 17),
-      Vector(4, 6, 7, 11),
-      Vector(6, 12, 15, 16),
-      Vector(2, 5, 9, 14),
-      (0 until sch.n_bits) //base cuboid must be always included at last position
-    ))
 
-    val dataCube = new PartialDataCube(cubename, cg.baseName)
-    dataCube.buildPartial(mstrat)
-    dataCube.save()
-    dataCube.primaryMoments = SolverTools.primaryMoments(dataCube)
-    */
-    val dc = PartialDataCube.load(cubename, cg.baseName)
-    //dc.loadPrimaryMoments(cg.baseName)
-    //val dc = DataCube.load(cubename)
+    val cubename = "Zipf"
+    val ename = s"${cg.inputname}-$isSMS-qsize"
+    val expt = new ZipfExperiment(ename)
+
+    val dc = if (isSMS) cg.loadSMS(logN, minD, maxD) else cg.loadRMS(logN, minD, maxD)
     dc.loadPrimaryMoments(cg.baseName)
 
-
-    //val mqr = new MaterializedQueryResult(cg, isSMS)  //for loading pre-generated queries and results
-    //val query_dim = Vector(10, 12, 14, 18).reverseIterator
-    val query_dim = Vector(10).reverseIterator
+    val query_dim = Vector(18).reverseIterator
     while(query_dim.hasNext)
     {
       var generator_counts = 0
@@ -164,7 +133,7 @@ object ZipfExperiment extends ExperimentRunner {
   }
   def main(args: Array[String]): Unit = {
     implicit val be = CBackend.default
-    val zipf = new ZipfGenerator(1.1)
+    val zipf = new ZipfGenerator2()
 
     def func(param: String)(timestamp: String, numIters: Int) = {
       implicit val ni = numIters

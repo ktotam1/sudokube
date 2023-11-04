@@ -335,13 +335,15 @@ object OnlineSamplingExperiment extends ExperimentRunner {
   }
   def main(args: Array[String]): Unit = {
     implicit val be = CBackend.default
-    //val nyc = new NYC()
+    val nyc = new NYC()
     //val ssb = new SSB(100)
     val ssb = new SSB(1)
     def func(param: String)(timestamp: String, numIters: Int) = {
       implicit val ni = numIters
       implicit val ts = timestamp
       param match {
+        case "qsize-nyc-prefix" => qsize(nyc, true)
+        case "qsize-nyc-random" => qsize(nyc, false)
         case "qsize-ssb-prefix" => qsize(ssb, true)
         case "qsize-ssb-random" => qsize(ssb, false)
       }
