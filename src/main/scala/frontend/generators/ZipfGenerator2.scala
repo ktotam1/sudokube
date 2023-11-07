@@ -1,6 +1,7 @@
 package frontend.generators
 
 import backend.CBackend
+import frontend.schema.encoders.StaticNatCol.defaultToInt
 import frontend.schema.encoders.{LazyMemCol, StaticDateCol, StaticNatCol}
 import frontend.schema.{LD2, Schema2, StaticSchema2}
 import util.BigBinary
@@ -9,14 +10,14 @@ import java.util.Date
 import scala.collection.immutable.Vector
 import scala.io.Source
 
-case class ZipfGenerator2()(implicit backend: CBackend) extends CubeGenerator("Zipf") {
+case class ZipfGenerator2()(implicit backend: CBackend) extends CubeGenerator("Zipf_K160N93kAlpha3.0") {
   override lazy val schemaInstance = schema()
 
   override val measureName: String = "Amount"
   override def generatePartitions(): IndexedSeq[(Int, Iterator[(BigBinary, Long)])] = {
     val join = (0 until 1000).map { i =>
       val num = String.format("%03d", Int.box(i))
-      val n2 = "K320N93kAlpha1.1.part" + num + ".tbl"
+      val n2 = "K160N93kAlpha3.0.part" + num + ".tbl"
       val size = read(n2).size
       val index_value_pair = read(n2).map(r =>
       schemaInstance.encode_tuple(r.dropRight(1).reverse.map(_.toInt)) -> StaticNatCol.defaultToInt(r.last.toDouble.toInt).get.toLong)
@@ -27,7 +28,7 @@ case class ZipfGenerator2()(implicit backend: CBackend) extends CubeGenerator("Z
   }
 
   override def schema(): StaticSchema2 = {
-
+/*
     def unique(i: Int) = s"tabledata/Zipf_2/uniq/K320N93kAlpha1.1.$i.uniq"
     import StaticDateCol._
     val bit1 = LD2[Int]("Bit_1", StaticNatCol.fromFile(unique(20)))
@@ -50,20 +51,20 @@ case class ZipfGenerator2()(implicit backend: CBackend) extends CubeGenerator("Z
     val bit18 = LD2[Int]("Bit_18", StaticNatCol.fromFile(unique(3)))
     val bit19 = LD2[Int]("Bit_19", StaticNatCol.fromFile(unique(2)))
     val bit20 = LD2[Int]("Bit_20", StaticNatCol.fromFile(unique(1)))
-    val value_dim = LD2[Int]("Value", StaticNatCol.fromFile(unique(21)))
+
 
     val dims1to10 = Vector(bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10)
     val dims11to20 = Vector(bit11, bit12, bit13, bit14, bit15, bit16, bit17, bit18, bit19, bit20)
-    val allDims =  Vector(value_dim) ++ dims1to10 ++ dims11to20
+    val allDims =  dims1to10 ++ dims11to20
 
-    val sch = new StaticSchema2(allDims)
-    //sch.columnVector.map(c => s"${c.name} has ${c.encoder.bits.size} bits = ${c.encoder.bits}").foreach(println)
-    //println("Total = "+sch.n_bits)
+ */
+    val dims = (1 to 30).map(i => LD2[Int](s"Bit_$i", new StaticNatCol(1, 16, defaultToInt, false))).toVector
+    val sch = new StaticSchema2(dims)
     sch
   }
 
   def read(file: String) = {
-    val filename = s"tabledata/Zipf_2/$file"
+    val filename = s"tabledata/Zipf_K160N93kAlpha/$file"
     val data = Source.fromFile(filename, "utf-8").getLines().map(_.split("\\|")) //ignore summons_number
     data
   }
@@ -82,7 +83,7 @@ object ZipfGenerator2 {
       //(15, 14), (15, 10), (15, 6),
       //(12, 18), (9, 18), (6, 18)
       //(6, 10), (9, 12), (15, 15)
-      (15,10)
+      (9, 10)
     )
     val maxD = 30 //40
 

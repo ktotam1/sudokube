@@ -26,7 +26,7 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
     val common_2 = s"$dcname,${qu.mkString(":")},${qu.size},$algo_2,"
     val common_3 = s"$dcname,${qu.mkString(":")},${qu.size},$algo_3,"
     Profiler.resetAll()
-    fileout.println(dc.index.n_bits)
+    //fileout.println(dc.index.n_bits)
     val (prepared, pm) = Profiler(s"${algo_2}_Prepare") {
       dc.index.prepareBatch(q) -> SolverTools.preparePrimaryMomentsForQuery[Double](q, dc.primaryMoments)
     }
@@ -64,7 +64,7 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
 
       (s, cuboid, pm.cuboidIntersection, numWords)
     }
-    fileout.println(numWords)
+    //fileout.println(numWords)
     val prepareTime_Online = Profiler.getDurationMicro(s"${algo_1}_Prepare")
     cuboid.randomShuffle()
     println(s"\t NaiveSampling Prepare Done")
@@ -89,7 +89,7 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
     val increment_pm = 1
     val increment_sample = 6400
 
-    run_ZipfExperiment(14, "V1", increment_pm, increment_sample,1.1, 1L)(dc, dcname, qu, trueResult)
+    run_ZipfExperiment(14, "V1", increment_pm, increment_sample, 3.0, 1L)(dc, dcname, qu, trueResult)
     //runInterleavingOnline_2(14, "V1", increment_pm, 640, 0.5, total_tuples)(dc, dcname, qu, trueResult)
   }
 
@@ -98,8 +98,8 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
 object ZipfExperiment extends ExperimentRunner {
   def qsize(cg: CubeGenerator, isSMS:Boolean)(implicit timestampedFolder: String, numIters: Int, be: CBackend) = {
     implicit val be = CBackend.default
-    Random.setSeed(1024)
-    val (logN, minD, maxD) = (15, 10, 30)
+    Random.setSeed(1)
+    val (logN, minD, maxD) = (9, 10, 30)
     val sch = cg.schemaInstance
     val baseCuboid = cg.loadBase(true)
 
@@ -110,7 +110,7 @@ object ZipfExperiment extends ExperimentRunner {
     val dc = if (isSMS) cg.loadSMS(logN, minD, maxD) else cg.loadRMS(logN, minD, maxD)
     dc.loadPrimaryMoments(cg.baseName)
 
-    val query_dim = Vector(18).reverseIterator
+    val query_dim = Vector(10).reverseIterator
     while(query_dim.hasNext)
     {
       var generator_counts = 0
