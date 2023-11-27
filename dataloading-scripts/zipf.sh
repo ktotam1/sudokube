@@ -4,5 +4,5 @@
 #remove the merged file all
 #(cd tabledata/Zipf && rm all)
 sbt --error "runMain frontend.generators.ZipfGenerator2 base"
-sbt --error "runMain frontend.generators.ZipfGenerator2 RMS"
+#sbt --error "runMain frontend.generators.ZipfGenerator2 RMS"
 sbt --error "runMain frontend.generators.ZipfGenerator2 SMS"

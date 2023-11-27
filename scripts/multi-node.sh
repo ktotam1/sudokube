@@ -10,6 +10,7 @@ if [ "$#" -eq 0 ]; then
 fi
 jobname=$1
 
+
 timestamp=`date +"%Y%m/%d/%H%M%S"`
 numIters=100
 echo echo "Executing job $jobname with $numIters iterations starting at $timestamp"

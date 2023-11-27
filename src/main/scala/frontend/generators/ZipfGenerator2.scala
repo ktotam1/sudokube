@@ -10,14 +10,14 @@ import java.util.Date
 import scala.collection.immutable.Vector
 import scala.io.Source
 
-case class ZipfGenerator2()(implicit backend: CBackend) extends CubeGenerator("Zipf_K160N93kAlpha3.0") {
+case class ZipfGenerator2()(implicit backend: CBackend) extends CubeGenerator("Zipf_K100N930kAlpha0.25") {
   override lazy val schemaInstance = schema()
 
   override val measureName: String = "Amount"
   override def generatePartitions(): IndexedSeq[(Int, Iterator[(BigBinary, Long)])] = {
     val join = (0 until 1000).map { i =>
       val num = String.format("%03d", Int.box(i))
-      val n2 = "K160N93kAlpha3.0.part" + num + ".tbl"
+      val n2 = "K100N930kAlpha0.25.part" + num + ".tbl"
       val size = read(n2).size
       val index_value_pair = read(n2).map(r =>
       schemaInstance.encode_tuple(r.dropRight(1).reverse.map(_.toInt)) -> StaticNatCol.defaultToInt(r.last.toDouble.toInt).get.toLong)
@@ -28,43 +28,13 @@ case class ZipfGenerator2()(implicit backend: CBackend) extends CubeGenerator("Z
   }
 
   override def schema(): StaticSchema2 = {
-/*
-    def unique(i: Int) = s"tabledata/Zipf_2/uniq/K320N93kAlpha1.1.$i.uniq"
-    import StaticDateCol._
-    val bit1 = LD2[Int]("Bit_1", StaticNatCol.fromFile(unique(20)))
-    val bit2 = LD2[Int]("Bit_2", StaticNatCol.fromFile(unique(19)))
-    val bit3 = LD2[Int]("Bit_3", StaticNatCol.fromFile(unique(18)))
-    val bit4 = LD2[Int]("Bit_4", StaticNatCol.fromFile(unique(17)))
-    val bit5 = LD2[Int]("Bit_5", StaticNatCol.fromFile(unique(16)))
-    val bit6 = LD2[Int]("Bit_6", StaticNatCol.fromFile(unique(15)))
-    val bit7 = LD2[Int]("Bit_7", StaticNatCol.fromFile(unique(14)))
-    val bit8 = LD2[Int]("Bit_8", StaticNatCol.fromFile(unique(13)))
-    val bit9 = LD2[Int]("Bit_9", StaticNatCol.fromFile(unique(12)))
-    val bit10 = LD2[Int]("Bit_10", StaticNatCol.fromFile(unique(11)))
-    val bit11 = LD2[Int]("Bit_11", StaticNatCol.fromFile(unique(10)))
-    val bit12 = LD2[Int]("Bit_12", StaticNatCol.fromFile(unique(9)))
-    val bit13 = LD2[Int]("Bit_13", StaticNatCol.fromFile(unique(8)))
-    val bit14 = LD2[Int]("Bit_14", StaticNatCol.fromFile(unique(7)))
-    val bit15 = LD2[Int]("Bit_15", StaticNatCol.fromFile(unique(6)))
-    val bit16 = LD2[Int]("Bit_16", StaticNatCol.fromFile(unique(5)))
-    val bit17 = LD2[Int]("Bit_17", StaticNatCol.fromFile(unique(4)))
-    val bit18 = LD2[Int]("Bit_18", StaticNatCol.fromFile(unique(3)))
-    val bit19 = LD2[Int]("Bit_19", StaticNatCol.fromFile(unique(2)))
-    val bit20 = LD2[Int]("Bit_20", StaticNatCol.fromFile(unique(1)))
-
-
-    val dims1to10 = Vector(bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10)
-    val dims11to20 = Vector(bit11, bit12, bit13, bit14, bit15, bit16, bit17, bit18, bit19, bit20)
-    val allDims =  dims1to10 ++ dims11to20
-
- */
-    val dims = (1 to 30).map(i => LD2[Int](s"Bit_$i", new StaticNatCol(1, 16, defaultToInt, false))).toVector
+    val dims = (1 to 25).map(i => LD2[Int](s"Bit_$i", new StaticNatCol(1, 16, defaultToInt, false))).toVector
     val sch = new StaticSchema2(dims)
     sch
   }
 
   def read(file: String) = {
-    val filename = s"tabledata/Zipf_K160N93kAlpha/$file"
+    val filename = s"tabledata/Zipf_K100N930kAlpha/$file"
     val data = Source.fromFile(filename, "utf-8").getLines().map(_.split("\\|")) //ignore summons_number
     data
   }

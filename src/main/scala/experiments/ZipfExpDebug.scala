@@ -12,14 +12,12 @@ import util.Profiler
 import java.io.PrintStream
 import scala.util.Random
 
-class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) extends Experiment (s"zipf", ename2, "zipf-expts"){
-  //val header = "CubeName,Query,QSize," +
-    "Solver,Fraction,Alpha,TotalTime,PrepareTime,FetchTime,SolveTime,Error,TrueValue,ErrorMax,Max_True_Ratio,ErrorMaxOrigin,MaxRatio"
+class ZipfExpDebug(ename2:String = "")(implicit timestampedfolder:String) extends Experiment (s"zipfdebug", ename2, "zipf-expts"){
   val header = "CubeName,Query,QSize," +
-    "Solver,Fraction,Alpha,Error,Result_pred_max,Result_true_max,MaxRatio"
-  fileout.println(header)
+    "Solver,Fraction,Alpha,TotalTime,PrepareTime,FetchTime,SolveTime,Error,TrueValue,ErrorMax,Max_True_Ratio,ErrorMaxOrigin,AllRatio"
+  //fileout.println(header)
   val solout = new PrintStream(s"expdata/solution.csv")
-  def run_ZipfExperiment(groupSize: Int, version: String, increment_pm: Int, increment_sample: Int, alpha: Double, total_tuples:Long)(dc: DataCube, dcname: String, qu: IndexedSeq[Int], trueResult: Array[Double]) = {
+  def run_ZipfExpDebug(groupSize: Int, version: String, increment_pm: Int, increment_sample: Int, alpha: Double, total_tuples:Long)(dc: DataCube, dcname: String, qu: IndexedSeq[Int], trueResult: Array[Double]) = {
     val algo_1 = "NaiveSampling"
     val algo_2 = "MomentSolver"
     val algo_3 = "NaiveSamplingTo50"
@@ -49,29 +47,28 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
       s.solve(true) //with heuristics to avoid negative values
     }
     println(s"\t Moment Solve Done")
+    val q_str = qu.mkString(":")
+    fileout.println(s"$q_str")
     val solveTime_Moment = Profiler.getDurationMicro(s"${algo_2}_Solve")
     val totalTime_Moment = prepareTime_Moment + fetchTime_Moment + solveTime_Moment
-    val (error_Moment_Max,trueValue_Moment,errorAll_Moment,trueResultAll_Moment) = SolverTools.errorMaxWithTrueValue(trueResult, moment_result)
+    val (error_Moment_Max,trueValue_Moment, errorAll_Moment, trueResultAll_Moment) = SolverTools.errorMaxWithTrueValue(trueResult, moment_result)
     val err_ratio_Moment = error_Moment_Max.toDouble / trueValue_Moment
     val error_Moment = SolverTools.error(trueResult, moment_result)
     val error_Moment_maximum = SolverTools.errorMax(trueResult, moment_result)
-    //fileout.println("MomentResult")
     val result_len_Moment = errorAll_Moment.length
-    val allRatio_Moment = (0 until result_len_Moment).map(i => errorAll_Moment(i) / trueResultAll_Moment(i))
-    val errorAll_Moment_res = errorAll_Moment.mkString(",")
-    val trueResultAll_Moment_res = trueResultAll_Moment.mkString(",")
-    val MaxRatio_Moment = allRatio_Moment.max
-    val allRatio_Moment_res = allRatio_Moment.mkString(",")
+    val allRatio_Moment = (0 until result_len_Moment).map(i => errorAll_Moment(i)/trueResultAll_Moment(i)).mkString(",")
     val moment_res = moment_result.mkString(",")
-    //fileout.println(s"$errorAll_Moment_res")
-    //fileout.println(s"$moment_res")
-    //fileout.println(s"$trueResultAll_Moment_res")
-    val (MaxRatio_Moment, maxIndex_m) = allRatio_Moment.zipWithIndex.maxBy { case (value, _) => value }
-    val related_true_res_m = trueResultAll_Moment(maxIndex_m)
-    val related_pred_res_m = errorAll_Moment(maxIndex_m)
-    //fileout.println(s"$allRatio_Moment_res")
-    //fileout.println(common_2+s"0.0,$alpha,$total_cuboid_cost,$totalTime_Moment,$fetchTime_Moment,$solveTime_Moment,$error_Moment,$trueValue_Moment,$error_Moment_Max,$err_ratio_Moment,$error_Moment_maximum,$MaxRatio_Moment")
-    fileout.println(common_2+s"0.0,$alpha,$error_Moment,$related_pred_res_m,$related_true_res_m,$MaxRatio_Moment")
+    val trueRes = trueResult.mkString(",")
+    //fileout.println(common_2+s"0.0,$alpha,$total_cuboid_cost,$totalTime_Moment,$fetchTime_Moment,$solveTime_Moment,$error_Moment,$trueValue_Moment,$error_Moment_Max,$err_ratio_Moment,$error_Moment_maximum")
+
+    fileout.println("Moment_Result")
+    fileout.println(s"$moment_res")
+    fileout.println(s"$trueRes")
+    fileout.println(s"$allRatio_Moment")
+    fileout.println(" ")
+
+
+
     val (naive_solver, cuboid, mask, numWords, numTotalWords, numGroups) = Profiler(s"${algo_1}_Prepare") {
       val pm = dc.index.prepareNaive(q).head
       val be = dc.cuboids.head.backend
@@ -83,7 +80,7 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
       val numGroups = numWords >> groupSize
       (s, cuboid, pm.cuboidIntersection, numWords, numTotalWords, numGroups)
     }
-
+    //fileout.println(s"numWords:${numWords}, numGroups:${numGroups}, numTotalWords:${numTotalWords}")
     val prepareTime_Online = Profiler.getDurationMicro(s"${algo_1}_Prepare")
     cuboid.randomShuffle()
     println(s"\t NaiveSampling Prepare Done")
@@ -102,78 +99,35 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
     val online_result = Profiler(s"${algo_1}_Solve") { naive_solver.solve() }
     println(s"\t NaiveSampling Solve Done")
     val solveTime_Online = Profiler.getDurationMicro(s"${algo_1}_Solve")
-    val (error_Online_Max, trueValue_Online,errorAll_Online, trueResultAll_Online) = SolverTools.errorMaxWithTrueValue(trueResult, online_result)
+    val (error_Online_Max, trueValue_Online, errorAll_Online, trueResultAll_Online) = SolverTools.errorMaxWithTrueValue(trueResult, online_result)
     val err_ratio_Online = error_Online_Max.toDouble / trueValue_Online
     val error_Online = SolverTools.error(trueResult, online_result)
     val error_Online_maximum = SolverTools.errorMax(trueResult, online_result)
     val totalTime_Online = prepareTime_Online + fetchTime_Online + solveTime_Online
     //fileout.println("OnlineResult")
     val result_len_Online = errorAll_Online.length
-    val allRatio_Online = (0 until result_len_Online).map(i => errorAll_Online(i) / trueResultAll_Online(i))
-    val errorAll_Online_res = errorAll_Online.mkString(",")
-    val trueResultAll_Online_res = trueResultAll_Online.mkString(",")
-    val allRatio_Online_res = allRatio_Online.mkString(",")
+    val allRatio_Online = (0 until result_len_Online).map(i => errorAll_Online(i) / trueResultAll_Online(i)).mkString(",")
     val online_res = online_result.mkString(",")
-    val MaxRatio_Online = allRatio_Online.max
-    val (MaxRatio_Online, maxIndex) = allRatio_Online.zipWithIndex.maxBy{case(value, _)=>value}
-    val related_true_res = trueResultAll_Online(maxIndex)
-    val related_pred_res = errorAll_Online(maxIndex)
-    //fileout.println(s"$online_res")
-    //fileout.println(s"$errorAll_Online_res")
-    //fileout.println(s"$trueResultAll_Online_res")
-    //fileout.println(s"$allRatio_Online_res")
-    fileout.println(common_1 + s"$fraction,$alpha,$error_Online,$related_pred_res,$related_true_res,$MaxRatio_Online")
-/*
-    val (naive_solver50, cuboid50, mask50, numWords50, numGroups50) = Profiler(s"${algo_3}_Prepare") {
-      val pm50 = dc.index.prepareNaive(q).head
-      val be = dc.cuboids.head.backend
-      val cuboid50 = dc.cuboids(pm50.cuboidID).asInstanceOf[be.SparseCuboid]
-      assert(cuboid50.n_bits == dc.index.n_bits)
-      val s50 = new NaiveSamplingSolver(q.size, cuboid50.size.toDouble)
-      val numWords50 = ((cuboid50.size + 63) >> 6).toInt
-      val numGroups50 = numWords50 >> groupSize
-
-      (s50, cuboid50, pm50.cuboidIntersection, numWords50, numGroups50)
-    }
-    //fileout.println(s"numWords50:${numWords50}, numGroups50:${numGroups50}")
-    (0 to numGroups50/2).foreach { i =>
-      Profiler(s"${algo_3}_Fetch") {
-        (0 until 1 << groupSize).foreach { j =>
-          val s = cuboid50.projectFetch64((i << groupSize) + j, mask50)
-          naive_solver50.addSample(s)
-        }
-      }
-      val Online50_result = Profiler(s"${algo_3}_Solve") {
-        naive_solver50.solve()
-      }
-      val prepareTime_Online50 = Profiler.getDurationMicro(s"${algo_3}_Prepare")
-      val fetchTime_Online50 = Profiler.getDurationMicro(s"${algo_3}_Fetch")
-      val solveTime_Online50 = Profiler.getDurationMicro(s"${algo_3}_Solve")
-      val totalTime_Online50 = prepareTime_Online50 + fetchTime_Online50 + solveTime_Online50
-      val (error_Online50_Max, trueValue_Online50,errorAll_Online50, trueResultAll_Online50) = SolverTools.errorMaxWithTrueValue(trueResult, Online50_result)
-      val err_ratio_Online50 = error_Online50_Max.toDouble / trueValue_Online50
-      val error_Online50 = SolverTools.error(trueResult, Online50_result)
-      val error_Online50_maximum = SolverTools.errorMax(trueResult, Online50_result)
-      val fraction = (i + 1).toDouble / (numGroups50 + 1)
-      val result_len_Online50 = errorAll_Online50.length
-      val allRatio_Online50 = (0 until result_len_Online50).map(i => errorAll_Online50(i) / trueResultAll_Online50(i)).mkString(":")
-      fileout.println(common_3 + s"$fraction,$alpha,$totalTime_Online50,$prepareTime_Online50,$fetchTime_Online50,$totalTime_Online50,$error_Online50,$trueValue_Online50,$error_Online50_Max,$err_ratio_Online50,$error_Online50_maximum,$allRatio_Online50")
-    }
-
- */
-
+    //fileout.println(common_1 + s"$fraction,$alpha,$totalTime_Online,$prepareTime_Online,$fetchTime_Online,$solveTime_Online,$error_Online,$trueValue_Online,$error_Online_Max,$err_ratio_Online,$error_Online_maximum")
+    fileout.println("Online_Result")
+    fileout.println(s"$online_res")
+    fileout.println(s"$trueRes")
+    fileout.println(s"$allRatio_Online")
+    fileout.println(" ")
   }
 
   override def run(dc: DataCube, dcname: String, qu: IndexedSeq[Int], trueResult: Array[Double], output: Boolean = true, qname: String = "", sliceValues: Seq[(Int, Int)] = Nil): Unit = {
     val increment_pm = 1
     val increment_sample = 6400
 
-    run_ZipfExperiment(7, "V1", increment_pm, increment_sample, 0.25, 1L)(dc, dcname, qu, trueResult)
+    run_ZipfExpDebug(7, "V1", increment_pm, increment_sample, 1.6, 1L)(dc, dcname, qu, trueResult)
+    //runInterleavingOnline_2(14, "V1", increment_pm, 640, 0.5, total_tuples)(dc, dcname, qu, trueResult)
   }
 
 }
 
-object ZipfExperiment extends ExperimentRunner {
+object ZipfExpDebug extends ExperimentRunner {
+  /*
   def qsize(cg: CubeGenerator, isSMS:Boolean)(implicit timestampedFolder: String, numIters: Int, be: CBackend) = {
     implicit val be = CBackend.default
     Random.setSeed(1)
@@ -183,7 +137,7 @@ object ZipfExperiment extends ExperimentRunner {
 
     val cubename = "Zipf"
     val ename = s"${cg.inputname}-$isSMS-qsize"
-    val expt = new ZipfExperiment(ename)
+    val expt = new ZipfExpDebug(ename)
 
     val dc = if (isSMS) cg.loadSMS(logN, minD, maxD) else cg.loadRMS(logN, minD, maxD)
     dc.loadPrimaryMoments(cg.baseName)
@@ -193,8 +147,76 @@ object ZipfExperiment extends ExperimentRunner {
     {
       var generator_counts = 0
       val qs = query_dim.next()
-      while(generator_counts < numIters)
-      {
+      var qLine = "9:10:11:14:15:18:19:58:59:67"
+      var query:IndexedSeq[Int] = qLine.split(":").map(_.toInt).toIndexedSeq
+      var prepareNaive = dc.index.prepareNaive(query)
+      if (prepareNaive.head.cuboidCost == sch.n_bits) {
+        val trueResult = dc.naive_eval(query)
+        expt.run(dc, dc.cubeName, query, trueResult)
+        generator_counts += 1
+      }
+      else {
+        println(s"skipping query $query that does not use basecuboid in NaiveSolver")
+      }
+
+      qLine = "3:7:64:65:66:67:72:73:74:75"
+      query = qLine.split(":").map(_.toInt).toIndexedSeq
+      prepareNaive = dc.index.prepareNaive(query)
+      if (prepareNaive.head.cuboidCost == sch.n_bits) {
+        val trueResult = dc.naive_eval(query)
+        expt.run(dc, dc.cubeName, query, trueResult)
+        generator_counts += 1
+      }
+      else {
+        println(s"skipping query $query that does not use basecuboid in NaiveSolver")
+      }
+      qLine = "11:12:13:14:15:47:78:79:98:99"
+      query = qLine.split(":").map(_.toInt).toIndexedSeq
+      prepareNaive = dc.index.prepareNaive(query)
+      if (prepareNaive.head.cuboidCost == sch.n_bits) {
+        val trueResult = dc.naive_eval(query)
+        expt.run(dc, dc.cubeName, query, trueResult)
+        generator_counts += 1
+      }
+      else {
+        println(s"skipping query $query that does not use basecuboid in NaiveSolver")
+      }
+      qLine = "23:56:57:58:59:67:85:86:87:95"
+      query = qLine.split(":").map(_.toInt).toIndexedSeq
+      prepareNaive = dc.index.prepareNaive(query)
+      if (prepareNaive.head.cuboidCost == sch.n_bits) {
+        val trueResult = dc.naive_eval(query)
+        expt.run(dc, dc.cubeName, query, trueResult)
+        generator_counts += 1
+      }
+      else {
+        println(s"skipping query $query that does not use basecuboid in NaiveSolver")
+      }
+
+    }
+    be.reset
+  }
+
+   */
+  def qsize(cg: CubeGenerator, isSMS: Boolean)(implicit timestampedFolder: String, numIters: Int, be: CBackend) = {
+    implicit val be = CBackend.default
+    Random.setSeed(1)
+    val (logN, minD, maxD) = (9, 10, 30)
+    val sch = cg.schemaInstance
+    val baseCuboid = cg.loadBase(true)
+
+    val cubename = "Zipf"
+    val ename = s"${cg.inputname}-$isSMS-qsize"
+    val expt = new ZipfExpDebug(ename)
+
+    val dc = if (isSMS) cg.loadSMS(logN, minD, maxD) else cg.loadRMS(logN, minD, maxD)
+    dc.loadPrimaryMoments(cg.baseName)
+
+    val query_dim = Vector(10).reverseIterator
+    while (query_dim.hasNext) {
+      var generator_counts = 0
+      val qs = query_dim.next()
+      while (generator_counts < numIters) {
         val query = Tools.generateQuery(isSMS, cg.schemaInstance, qs)
         val prepareNaive = dc.index.prepareNaive(query)
         if (prepareNaive.head.cuboidCost == sch.n_bits) {
