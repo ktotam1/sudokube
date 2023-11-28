@@ -29,6 +29,7 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
     val common_3 = s"$dcname,${qu.mkString(":")},${qu.size},$algo_3,"
     Profiler.resetAll()
     //fileout.println(dc.index.n_bits)
+    /*
     val (prepared, pm) = Profiler(s"${algo_2}_Prepare") {
       dc.index.prepareBatch(q) -> SolverTools.preparePrimaryMomentsForQuery[Double](q, dc.primaryMoments)
     }
@@ -71,12 +72,13 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
     val related_pred_res_m = errorAll_Moment(maxIndex_m)
     //fileout.println(s"$allRatio_Moment_res")
     //fileout.println(common_2+s"0.0,$alpha,$total_cuboid_cost,$totalTime_Moment,$fetchTime_Moment,$solveTime_Moment,$error_Moment,$trueValue_Moment,$error_Moment_Max,$err_ratio_Moment,$error_Moment_maximum,$MaxRatio_Moment")
-    fileout.println(common_2+s"0.0,$alpha,$error_Moment,$related_pred_res_m,$related_true_res_m,$MaxRatio_Moment")
+    //fileout.println(common_2+s"0.0,$alpha,$error_Moment,$related_pred_res_m,$related_true_res_m,$MaxRatio_Moment")
     val (naive_solver, cuboid, mask, numWords, numTotalWords, numGroups) = Profiler(s"${algo_1}_Prepare") {
       val pm = dc.index.prepareNaive(q).head
       val be = dc.cuboids.head.backend
       val cuboid = dc.cuboids(pm.cuboidID).asInstanceOf[be.SparseCuboid]
       assert(cuboid.n_bits == dc.index.n_bits)
+      //val s = new NaiveSamplingSolver(q.size, cuboid.size.toDouble)
       val s = new NaiveSamplingSolver(q.size, cuboid.size.toDouble)
       val numWords = (total_cuboid_cost+63) >> 6
       val numTotalWords = ((cuboid.size + 63) >> 6).toInt
@@ -118,12 +120,15 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
     val (MaxRatio_Online, maxIndex) = allRatio_Online.zipWithIndex.maxBy{case(value, _)=>value}
     val related_true_res = trueResultAll_Online(maxIndex)
     val related_pred_res = errorAll_Online(maxIndex)
-    //fileout.println(s"$online_res")
-    //fileout.println(s"$errorAll_Online_res")
-    //fileout.println(s"$trueResultAll_Online_res")
-    //fileout.println(s"$allRatio_Online_res")
+    fileout.println(s"$online_res")
+
+    fileout.println(s"$trueResultAll_Online_res")
+    fileout.println(s"$errorAll_Online_res")
+    fileout.println(s"$allRatio_Online_res")
     fileout.println(common_1 + s"$fraction,$alpha,$error_Online,$related_pred_res,$related_true_res,$MaxRatio_Online")
-/*
+
+     */
+
     val (naive_solver50, cuboid50, mask50, numWords50, numGroups50) = Profiler(s"${algo_3}_Prepare") {
       val pm50 = dc.index.prepareNaive(q).head
       val be = dc.cuboids.head.backend
@@ -135,14 +140,29 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
 
       (s50, cuboid50, pm50.cuboidIntersection, numWords50, numGroups50)
     }
-    //fileout.println(s"numWords50:${numWords50}, numGroups50:${numGroups50}")
-    (0 to numGroups50/2).foreach { i =>
-      Profiler(s"${algo_3}_Fetch") {
-        (0 until 1 << groupSize).foreach { j =>
-          val s = cuboid50.projectFetch64((i << groupSize) + j, mask50)
-          naive_solver50.addSample(s)
+    val num_total_samples = cuboid50.size.toDouble
+    var num_input_samples = 0
+    (0 until numGroups50).foreach { i =>
+      if(num_input_samples < num_total_samples - (1<<groupSize)*64) {
+        Profiler(s"${algo_3}_Fetch") {
+          (0 until 1 << groupSize).foreach { j =>
+            val s = cuboid50.projectFetch64((i << groupSize) + j, mask50)
+            naive_solver50.addSample(s)
+          }
         }
+        num_input_samples += (1<<groupSize)*64
       }
+      else{
+        val num_left_samples = (num_total_samples - num_input_samples).toInt
+        Profiler(s"${algo_3}_Fetch") {
+          (0 until num_left_samples/64).foreach { j =>
+            val s = cuboid50.projectFetch64((i << groupSize) + j, mask50)
+            naive_solver50.addSample(s)
+          }
+        }
+        num_input_samples += num_left_samples
+      }
+
       val Online50_result = Profiler(s"${algo_3}_Solve") {
         naive_solver50.solve()
       }
@@ -154,21 +174,35 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
       val err_ratio_Online50 = error_Online50_Max.toDouble / trueValue_Online50
       val error_Online50 = SolverTools.error(trueResult, Online50_result)
       val error_Online50_maximum = SolverTools.errorMax(trueResult, Online50_result)
-      val fraction = (i + 1).toDouble / (numGroups50 + 1)
+
+      val fraction = num_input_samples / num_total_samples
       val result_len_Online50 = errorAll_Online50.length
-      val allRatio_Online50 = (0 until result_len_Online50).map(i => errorAll_Online50(i) / trueResultAll_Online50(i)).mkString(":")
-      fileout.println(common_3 + s"$fraction,$alpha,$totalTime_Online50,$prepareTime_Online50,$fetchTime_Online50,$totalTime_Online50,$error_Online50,$trueValue_Online50,$error_Online50_Max,$err_ratio_Online50,$error_Online50_maximum,$allRatio_Online50")
+      val allRatio_Online50 = (0 until result_len_Online50).map(i => errorAll_Online50(i) / trueResultAll_Online50(i))
+      val allRatio_Online50_str = allRatio_Online50.mkString(":")
+      /*
+      val (MaxRatio_Online, maxIndex) = allRatio_Online.zipWithIndex.maxBy{case(value, _)=>value}
+          val related_true_res = trueResultAll_Online(maxIndex)
+          val related_pred_res = errorAll_Online(maxIndex)
+       */
+      val (maxRatio_Online50, maxIndex_Online50) = allRatio_Online50.zipWithIndex.maxBy{case(value, _)=>value}
+      val related_true_res_Online50 = trueResultAll_Online50(maxIndex_Online50)
+      val related_pred_res_Online50 = errorAll_Online50(maxIndex_Online50)
+      fileout.println(common_3 + s"$fraction,$alpha,$error_Online50,$related_pred_res_Online50,$related_true_res_Online50,$maxRatio_Online50")
+      if(fraction==1)
+        {
+          fileout.println(allRatio_Online50_str)
+        }
     }
 
- */
+
 
   }
 
   override def run(dc: DataCube, dcname: String, qu: IndexedSeq[Int], trueResult: Array[Double], output: Boolean = true, qname: String = "", sliceValues: Seq[(Int, Int)] = Nil): Unit = {
     val increment_pm = 1
     val increment_sample = 6400
-
-    run_ZipfExperiment(7, "V1", increment_pm, increment_sample, 0.25, 1L)(dc, dcname, qu, trueResult)
+    //run_ZipfExperiment(0, "V1", increment_pm, increment_sample, 0.0, 1L)(dc, dcname, qu, trueResult)
+    run_ZipfExperiment(1, "V1", increment_pm, increment_sample, 0.0, 1L)(dc, dcname, qu, trueResult)
   }
 
 }
@@ -178,6 +212,7 @@ object ZipfExperiment extends ExperimentRunner {
     implicit val be = CBackend.default
     Random.setSeed(1)
     val (logN, minD, maxD) = (9, 10, 30)
+    //val (logN, minD, maxD) = (3, 6, 10)
     val sch = cg.schemaInstance
     val baseCuboid = cg.loadBase(true)
 

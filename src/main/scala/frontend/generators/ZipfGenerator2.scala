@@ -10,14 +10,14 @@ import java.util.Date
 import scala.collection.immutable.Vector
 import scala.io.Source
 
-case class ZipfGenerator2()(implicit backend: CBackend) extends CubeGenerator("Zipf_K100N930kAlpha0.25") {
+case class ZipfGenerator2()(implicit backend: CBackend) extends CubeGenerator("Zipf_K100N930kAlpha2.0") {
   override lazy val schemaInstance = schema()
 
   override val measureName: String = "Amount"
   override def generatePartitions(): IndexedSeq[(Int, Iterator[(BigBinary, Long)])] = {
     val join = (0 until 1000).map { i =>
       val num = String.format("%03d", Int.box(i))
-      val n2 = "K100N930kAlpha0.25.part" + num + ".tbl"
+      val n2 = "K100N930kAlpha2.0.part" + num + ".tbl"
       val size = read(n2).size
       val index_value_pair = read(n2).map(r =>
       schemaInstance.encode_tuple(r.dropRight(1).reverse.map(_.toInt)) -> StaticNatCol.defaultToInt(r.last.toDouble.toInt).get.toLong)
@@ -36,6 +36,7 @@ case class ZipfGenerator2()(implicit backend: CBackend) extends CubeGenerator("Z
   def read(file: String) = {
     val filename = s"tabledata/Zipf_K100N930kAlpha/$file"
     val data = Source.fromFile(filename, "utf-8").getLines().map(_.split("\\|")) //ignore summons_number
+    //val data = Source.fromFile(filename, "utf-8").getLines().map(_.split(",")) //ignore summons_number
     data
   }
 }
@@ -53,9 +54,9 @@ object ZipfGenerator2 {
       //(15, 14), (15, 10), (15, 6),
       //(12, 18), (9, 18), (6, 18)
       //(6, 10), (9, 12), (15, 15)
-      (9, 10)
+      (9,10)//(3,6)
     )
-    val maxD = 30 //40
+    val maxD = 30
 
     if ((arg equals "base") || (arg equals "all")) {
       implicit val backend = CBackend.default
