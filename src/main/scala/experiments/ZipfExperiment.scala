@@ -3,7 +3,7 @@ package experiments
 import backend.CBackend
 import core.solver.SolverTools
 import core.solver.moment.CoMoment5SolverDouble
-import core.solver.sampling.NaiveSamplingSolver
+import core.solver.sampling.{MomentSamplingSolver, NaiveSamplingSolver}
 import core.{DataCube, PartialDataCube}
 import frontend.experiments.Tools
 import frontend.generators._
@@ -148,6 +148,8 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
           (0 until 1 << groupSize).foreach { j =>
             val s = cuboid50.projectFetch64((i << groupSize) + j, mask50)
             naive_solver50.addSample(s)
+            fileout.println(s(0).toString)
+            fileout.println(s(1).toString)
           }
         }
         num_input_samples += (1<<groupSize)*64
@@ -187,13 +189,33 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
       val (maxRatio_Online50, maxIndex_Online50) = allRatio_Online50.zipWithIndex.maxBy{case(value, _)=>value}
       val related_true_res_Online50 = trueResultAll_Online50(maxIndex_Online50)
       val related_pred_res_Online50 = errorAll_Online50(maxIndex_Online50)
-      fileout.println(common_3 + s"$fraction,$alpha,$error_Online50,$related_pred_res_Online50,$related_true_res_Online50,$maxRatio_Online50")
+      //fileout.println(common_3 + s"$fraction,$alpha,$error_Online50,$related_pred_res_Online50,$related_true_res_Online50,$maxRatio_Online50")
       if(fraction==1)
         {
-          fileout.println(allRatio_Online50_str)
+          //fileout.println(allRatio_Online50_str)
         }
     }
 
+    val (hybrid_solver, hybrid_cuboid, hybrid_mask, hybrid_pms, hybird_numWords, hybrid_numGroups) = Profiler(s"Prepare_Hybrid") {
+      val pm = dc.index.prepareNaive(q).head // get prematerialized base cuboid
+      val be = dc.cuboids.head.backend //get backend
+      val cuboid = dc.cuboids(pm.cuboidID).asInstanceOf[be.SparseCuboid]
+      assert(cuboid.n_bits == dc.index.n_bits) //number of basemoment cuboid
+      val primMoments = SolverTools.preparePrimaryMomentsForQuery[Double](q, dc.primaryMoments)
+      val pms_iterator = dc.index.prepareBatch(q).iterator
+      //val pms_iter = dc.index.prepareBatch(q)
+      val numWords = ((cuboid.size + 63) >> 6).toInt
+      val numGroups = numWords >> groupSize
+      val s = new MomentSamplingSolver(q.size, primMoments, version, (numGroups + 1) * (1 << groupSize) * 64)
+      //total number of samples is (numGroups+1) * (1 << groupSize) * 64
+      (s, cuboid, pm.cuboidIntersection, pms_iterator, numWords, numGroups)
+    }
+    hybrid_cuboid.randomShuffle() //random shuffle
+    println(s"\t  Hybrid Solver Prepare Done")
+    val prepareTime_Hybrid = Profiler.getDurationMicro("Prepare_Hybrid")
+
+    var initResult_Hybrid: Array[Double] = Array.fill(trueResult.size)(0.0)
+    val samples_iterator = (0 to hybrid_numGroups).flatMap(i => (0 until (1 << groupSize)).map(j => (i, j))).iterator
 
 
   }

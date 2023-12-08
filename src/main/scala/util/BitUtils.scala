@@ -248,7 +248,7 @@ object BitUtils {
     var idx2 = idxes
     var shift = 0
     var result = 0
-    while (idx2 > 0) {
+    while (idx2 > 0) { //iterate all bits in the idxes
       if ((idx2 & 0x1) == 1) {
         result += (i2 & 0x1) << shift
         i2 = i2 >> 1
