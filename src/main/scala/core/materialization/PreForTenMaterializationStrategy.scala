@@ -13,7 +13,7 @@ import util.Util
  * @param maxD  maximum dimension upto which we materialize cuboids
  * @param minD  minimum dimensions upto which we materialize cuboids
  */
-abstract class Base2MaterializationStrategy(nb: Int, logN: Double, minD: Int, maxD: Int) extends MaterializationStrategy(nb) {
+abstract class PreForTenMaterializationStrategy(nb: Int, logN: Double, minD: Int, maxD: Int) extends MaterializationStrategy(nb) {
   //get number of materialized cuboids with d dims
   def n_proj_d(d: Int) = if (d >= minD && d <= maxD && d <= (logN - 1 + minD)) {
     val n = math.pow(2, logN - 1 + minD - d)
@@ -35,7 +35,14 @@ abstract class Base2MaterializationStrategy(nb: Int, logN: Double, minD: Int, ma
       }
     }
     println("1") //for base cuboid
-    cubD ++ Vector((0 until n_bits))
+
+    val presetCuboid = Vector(n_bits - 5 until n_bits).toIndexedSeq
+    if (cubD.contains(presetCuboid))
+      cubD ++ Vector((0 until n_bits))
+    else {
+      cubD ++ presetCuboid ++ Vector((0 until n_bits))
+    }
+
   }
   println("Total =" + projections.length)
 
@@ -47,14 +54,14 @@ abstract class Base2MaterializationStrategy(nb: Int, logN: Double, minD: Int, ma
  * Concrete subclass of [[Base2MaterializationStrategy]] that picks cuboids of a given dimensionality as prefixes of bits
  * from cosmetic dimensions in the schema
  */
-class SchemaBasedMaterializationStrategy(sch: Schema2, logN: Double, minD: Int, maxD: Int) extends Base2MaterializationStrategy(sch.n_bits, logN, minD, maxD) {
+class PreForTenSchemaBasedMaterializationStrategy(sch: Schema2, logN: Double, minD: Int, maxD: Int) extends PreForTenMaterializationStrategy(sch.n_bits, logN, minD, maxD) {
   def this(sch: Schema2, logN: Double, minD: Int) = this(sch, logN, minD, (minD + logN - 1).toInt)
   override def getCuboidsForD(d: Int): Vector[IndexedSeq[Int]] = {
     val n_proj = n_proj_d(d) //get the number of d-dimensional cuboids
     (0 until n_proj).map { i => sch.root.samplePrefix(d).toIndexedSeq.sorted }.distinct.toVector
   }
 
-//  def createUsingAllSubsetsOf(q: Seq[Int]): MaterializationStrategy = {
+  //  def createUsingAllSubsetsOf(q: Seq[Int]): MaterializationStrategy = {
   //  MaterializationStrategy.all_subsetsOf(n_bits, Seq(1, 2, 3))}
 }
 
@@ -62,7 +69,7 @@ class SchemaBasedMaterializationStrategy(sch: Schema2, logN: Double, minD: Int, 
  * Concrete subclass of [[Base2MaterializationStrategy]] that picks cuboids of a given dimensionality randomly
  */
 @SerialVersionUID(5L)
-class RandomizedMaterializationStrategy(override val n_bits: Int, logN: Double, minD: Int, maxD: Int) extends Base2MaterializationStrategy(n_bits, logN, minD, maxD) {
+class PreForTenRandomizedMaterializationStrategy(override val n_bits: Int, logN: Double, minD: Int, maxD: Int) extends PreForTenMaterializationStrategy(n_bits, logN, minD, maxD) {
   def this(n_bits: Int, logN: Double, minD: Int) = this(n_bits, logN, minD, (minD + logN - 1).toInt)
   override def getCuboidsForD(d: Int): Vector[IndexedSeq[Int]] = {
     val n_proj = n_proj_d(d)
@@ -72,7 +79,7 @@ class RandomizedMaterializationStrategy(override val n_bits: Int, logN: Double, 
   }
 }
 
-case class DynamicSchemaMaterializationStrategy(sch: DynamicSchema, logN: Double, minD: Int, maxD: Int) extends Base2MaterializationStrategy(sch.n_bits, logN, minD, maxD) {
+case class PreForTenDynamicSchemaMaterializationStrategy(sch: DynamicSchema, logN: Double, minD: Int, maxD: Int) extends PreForTenMaterializationStrategy(sch.n_bits, logN, minD, maxD) {
   def this(sch: DynamicSchema, logN: Double, minD: Int) = this(sch, logN, minD, (minD + logN - 1).toInt)
   override def getCuboidsForD(d: Int): Vector[IndexedSeq[Int]] = {
     val n_proj = n_proj_d(d)

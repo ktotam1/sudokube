@@ -13,8 +13,7 @@ import java.io.PrintStream
 import scala.util.Random
 
 class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) extends Experiment (s"zipf", ename2, "zipf-expts"){
-  //val header = "CubeName,Query,QSize," +
-    "Solver,Fraction,Alpha,TotalTime,PrepareTime,FetchTime,SolveTime,Error,TrueValue,ErrorMax,Max_True_Ratio,ErrorMaxOrigin,MaxRatio"
+  //val header = "CubeName,Query,QSize," + "Solver,Fraction,Alpha,TotalTime,PrepareTime,FetchTime,SolveTime,Error,TrueValue,ErrorMax,Max_True_Ratio,ErrorMaxOrigin,MaxRatio"
   val header = "CubeName,Query,QSize," +
     "Solver,Fraction,Alpha,Error,Result_pred_max,Result_true_max,MaxRatio"
   fileout.println(header)

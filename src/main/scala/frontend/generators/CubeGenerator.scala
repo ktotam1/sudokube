@@ -1,6 +1,6 @@
 package frontend.generators
 import backend.{Backend, CBackend}
-import core.materialization.{MaterializationStrategy, RandomizedMaterializationStrategy, SchemaBasedMaterializationStrategy}
+import core.materialization.{MaterializationStrategy, PreForTenSchemaBasedMaterializationStrategy, RandomizedMaterializationStrategy, SchemaBasedMaterializationStrategy}
 import core.solver.SolverTools
 import core.{DataCube, PartialDataCube}
 import frontend.schema.Schema2
@@ -66,6 +66,20 @@ abstract class CubeGenerator(val inputname: String)(implicit val backend: CBacke
     PartialDataCube.load(smsname, baseName)
   }
 
+  def savePreForTenSMS(logN: Int, minD: Int, maxD: Int) = {
+    val Presms = new PreForTenSchemaBasedMaterializationStrategy(schemaInstance, logN, minD, maxD)
+    val Presmsname = s"${inputname}_PreForTensms3_${logN}_${minD}_${maxD}"
+    val dc4 = new PartialDataCube(Presmsname, baseName)
+    println(s"Building DataCube $Presmsname")
+    dc4.buildPartial(Presms)
+    println(s"Saving DataCube $Presmsname")
+    dc4.save()
+  }
+
+  def loadPreForTenSMS(logN: Int, minD: Int, maxD: Int) = {
+    val Presmsname = s"${inputname}_PreForTensms3_${logN}_${minD}_${maxD}"
+    PartialDataCube.load(Presmsname, baseName)
+  }
 
   protected def schema(): Schema2
 

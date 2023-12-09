@@ -20,8 +20,8 @@ class MomentSamplingWithSlicingSolver(totalsize: Int, qsize:Int, version:String,
   val solverName = "MomentSamplingWithSlicing"
   var pmArray = new Array[Double](totalsize)
   override def init(): Unit = {}
-
-  val sampleSolution = Array.fill(N)(0.0) //N = 2^qsize
+  val N_samples = 1 << totalsize
+  val sampleSolution = Array.fill(N_samples)(0.0) //N = 2^qsize
   var sampleSum = 0.0
   var numSamples = 0.0
   init2()
@@ -89,7 +89,7 @@ class MomentSamplingWithSlicingSolver(totalsize: Int, qsize:Int, version:String,
         twoPowercurDim <<= 1
       }
 
-      while (twoPowercurDim <= q) {
+      while (twoPowercurDim <= q_converted) {
         if ((twoPowercurDim & q_converted) != 0) {
           aggColSet |= (1 << aggcolsOffsetInQuery)
           aggColSetInCuboid |= (1 << colsOffsetInCuboid)
