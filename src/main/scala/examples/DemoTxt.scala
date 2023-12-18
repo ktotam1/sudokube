@@ -65,6 +65,43 @@ object DemoTxt {
     println("Error = " + error(actual, result))
   }
 
+  def moment1Solver[T: ClassTag : Fractional]() = {
+    val num = implicitly[Fractional[T]]
+    //0 and 1D moments are required for MomentSolver that we precompute here
+    val pm = List(0 -> 17, 1 -> 4, 2 -> 7, 4 -> 12).map(x => x._1 -> num.fromInt(x._2))
+    val total = 3 //total query bits
+    val slice = Vector(2 -> 1, 1 -> 0).reverse //slicing for the top k-bits in the order of least significant to most significant
+    val agg = total - slice.length //how many bits for aggregation
+
+    val solver = new CoMoment5SliceSolver[T](total, slice, true, Moment1Transformer(), pm)
+    //val solver = new CoMoment5SliceSolver[T](total ,slice,true, Moment1Transformer(), pm)
+    //val solver = new CoMoment5Solver[T](total ,true, Moment1Transformer(), pm)
+
+    //true result
+    val actual = Util.slice(Array(0, 1, 3, 1, 7, 2, 3, 0).map(_.toDouble), slice)
+
+    implicit def listToInt = SetToInt(_)
+
+    //Add 2D cuboid containing bits 0,1 to solver
+    solver.add(List(0, 1), Array(7, 3, 6, 1).map(x => num.fromInt(x)))
+
+    //Add 2D cuboid containing bits 1,2 to solver
+    solver.add(List(1, 2), Array(1, 4, 9, 3).map(x => num.fromInt(x)))
+
+    //Add 2D cuboid containing bits 0,2 to solver
+    solver.add(List(0, 2), Array(3, 2, 10, 2).map(x => num.fromInt(x)))
+    println(actual.mkString(","))
+    println("Moments before =" + solver.moments.mkString(" "))
+    //extrapolate missing moments
+    solver.fillMissing()
+    println("Moments after =" + solver.moments.mkString(" "))
+
+    //convert extrapolated moments to values
+    val result = solver.solve()
+    println(result.map(num.toDouble(_)).mkString(" "))
+    println("Error = " + error(actual, result))
+  }
+
   def momentSamplingSolverWithSlicing() = {
 
     //0 and 1D moments are required for MomentSolver that we precompute here
@@ -75,7 +112,7 @@ object DemoTxt {
     val agg = total - slice.length //how many bits for aggregation
     val q = Vector(0,1,2,3,4).toIndexedSeq
     val total_samples = 32
-    val solver = new MomentSamplingWithSlicingSolver(total, q.size,"V3", slice, true, Moment1Transformer[Double](), pm, total_samples, q)
+    val solver = new MomentSamplingWithSlicingSolver(total,"V3", slice, true, Moment1Transformer[Double](), pm, total_samples, q)
     //val solver = new CoMoment5SliceSolver[T](total ,slice,true, Moment1Transformer(), pm)
     //val solver = new CoMoment5Solver[T](total ,true, Moment1Transformer(), pm)
     //val samples: Array[Long] = Array[Long](0, 0, 1, 1, 2, 3, 3, 1, 4, 7, 5, 2, 6, 3, 7, 0)
@@ -643,7 +680,8 @@ object DemoTxt {
   }
   def main(args: Array[String]): Unit = {
     //momentSolver()
-    momentSamplingSolverWithSlicing()
+    //momentSamplingSolverWithSlicing()
+    moment1Solver()
     //backend_naive()
     //ssb_demo()
     //cooking_demo()
