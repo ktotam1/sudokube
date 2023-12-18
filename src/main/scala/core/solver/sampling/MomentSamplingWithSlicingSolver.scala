@@ -26,12 +26,12 @@ class MomentSamplingWithSlicingSolver(totalsize: Int,  version:String, sliceList
   val sampleSolution = Array.fill(N_samples)(0.0) //N = 2^qsize
   var sampleSum = 0.0
   var numSamples = 0.0
-  var moments_after_convertion = Array.fill[Double](N)(0)
-  var moments_from_sampling = Array.fill[Double](N)(0)
+  //var moments_after_convertion = Array.fill[Double](N)(0)
+  //var moments_from_sampling = Array.fill[Double](N)(0)
   val ratio_All = Array.fill[Double](N)(0)
-  //val sampleCentralMomentsToAdd = new ListBuffer[(Int, T)]()
-  //var sampleCentralMoments = Array.fill[Double](N)(0.0)
-  //var moments_combined = Array.fill[Double](N)(0.0)
+  val sampleCentralMomentsToAdd = new ListBuffer[(Int, T)]()
+  var sampleCentralMoments = Array.fill[Double](N)(0.0)
+  var moments_combined = Array.fill[Double](N)(0.0)
   init2()
 
   def init2(): Unit = {
@@ -55,6 +55,7 @@ class MomentSamplingWithSlicingSolver(totalsize: Int,  version:String, sliceList
   }
 
   override def solve(handleNegative: Boolean): Array[Double] = {
+    /*
     val q_converted = SetToInt(q)
     val sampleCentralMoments = new ListBuffer[(Int, T)]()
     var sampleRawMoments: Array[T] = null
@@ -256,6 +257,9 @@ class MomentSamplingWithSlicingSolver(totalsize: Int,  version:String, sliceList
     }
     moments_after_convertion = result.clone()
     moments_from_sampling = sampleRawMoments.clone()
+
+     */
+    val result: Array[Double] = moments_combined.clone()
     var h = 1
     var i = 0
     var j = 0
@@ -437,10 +441,10 @@ class MomentSamplingWithSlicingSolver(totalsize: Int,  version:String, sliceList
         addCounter(i0agg) += 1
         val v = cuboid_moments(i0agg)
         if (v != 0.0)
-          {
-            momentsToAdd += iagg -> (v * sliceMP)
-            addCounter(iagg) += 1
-          }
+        {
+          momentsToAdd += iagg -> (v * sliceMP)
+          addCounter(iagg) += 1
+        }
 
       }
     }
@@ -461,8 +465,37 @@ class MomentSamplingWithSlicingSolver(totalsize: Int,  version:String, sliceList
     numSamples += numSamplesLocal
   }
   def scaleFactor = if (numSamples > 0) totalSamples / numSamples else 0
+/*
+  def convertSampleToMoments(): Unit = {
+    //First, convert sample to moments with scaling
+    val result = sampleSolution.map(x => x * scaleFactor)
+    var logh = 0
+    var h = 1
+    var i = 0
+    var j = 0
+    while (logh < q.size - sliceList.size) {
+      i = 0
+      val p = pmArray(logh)
+      while (i < N) {
+        j = i
+        while (j < i + h) {
+          val first = result(j) + result(j + h)
+          val second = result(j + h) - (p * first)
+          result(j) = first
+          result(j + h) = second
+          j += 1
+        }
+        i += (h << 1)
+      }
+      h <<= 1
+      logh += 1
+    }
+    sampleCentralMoments = result.clone()
+  }
 
-  /*
+ */
+
+
   def convertSampleToMoments() = {
     val q_converted = SetToInt(q)
 
@@ -618,7 +651,7 @@ class MomentSamplingWithSlicingSolver(totalsize: Int,  version:String, sliceList
 
   }
 
-   */
+
 
 
 
@@ -630,31 +663,30 @@ class MomentSamplingWithSlicingSolver(totalsize: Int,  version:String, sliceList
           moments(i) += m
       }
     }
-/*
-    Profiler("SliceMomentsAdd") {
-      sampleCentralMomentsToAdd.foreach {
-        case (i, m) =>
-          sampleCentralMoments(i) += m
-      }
-    }
 
+        Profiler("SliceMomentsAdd") {
+          sampleCentralMomentsToAdd.foreach {
+            case (i, m) =>
+              sampleCentralMoments(i) += m
+          }
+        }
+
+
+    val result_temp = moments.clone()
     val result: Array[Double] = result_temp.zipWithIndex.map {
       res_ind_value =>
         val moment_portion = addCounter(res_ind_value._2).toDouble / timesInTotal(res_ind_value._2).toDouble
         ratio_All(res_ind_value._2) = moment_portion
-        if (moment_portion > 0.00005 || numSamples / totalSamples == 0) {
+        if (moment_portion > 0.00003 || numSamples / totalSamples == 0) {
           res_ind_value._1
         }
         else {
-          sampleRawMoments(res_ind_value._2)
+          sampleCentralMoments(res_ind_value._2)
           //res_ind_value._1
         }
     }
-    moments_after_convertion = result.clone()
-    moments_from_sampling = sampleRawMoments.clone()
-
- */
-
+    moments_combined = result.clone()
+    //moments_from_sampling = sampleRawMoments.clone()
     val aggCols = ((0 until totalsize).toSet.diff(sliceList.map(_._1).toSet)).toVector.sorted
     Profiler("MomentExtrapolate") {
       var h = 1
@@ -665,7 +697,7 @@ class MomentSamplingWithSlicingSolver(totalsize: Int,  version:String, sliceList
         while (i < N) {
           var j = i
           while (j < i + h) {
-            moments(j + h) += (p * moments(j))
+            moments_combined(j + h) += (p * moments_combined(j))
             j += 1
           }
           i += (h << 1)
@@ -674,5 +706,28 @@ class MomentSamplingWithSlicingSolver(totalsize: Int,  version:String, sliceList
         h <<= 1
       }
     }
+
+    /*
+      val aggCols = ((0 until totalsize).toSet.diff(sliceList.map(_._1).toSet)).toVector.sorted
+      Profiler("MomentExtrapolate") {
+        var h = 1
+        var logh = 0
+        while (h < N) {
+          val p = pmArray(aggCols(logh)) // logh^th aggdim
+          var i = 0
+          while (i < N) {
+            var j = i
+            while (j < i + h) {
+              moments(j + h) += (p * moments(j))
+              j += 1
+            }
+            i += (h << 1)
+          }
+          logh += 1
+          h <<= 1
+        }
+      }
+
+     */
   }
 }
