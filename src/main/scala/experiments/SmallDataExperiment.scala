@@ -21,7 +21,8 @@ class SmallDataExperiment(ename2:String = "")(implicit timestampedfolder:String)
   val solout = new PrintStream(s"expdata/solution.csv")
   def run_SmallDataExperiment(groupSize: Int, version: String)(dc: DataCube, dcname: String, qu: IndexedSeq[Int], trueResult: Array[Double]) ={
     val q = qu.sorted
-    val algo = "MomentSamplingWithSlicing"
+    //val algo = "MomentSamplingWithSlicing"
+    val algo = "NaiveSampling"
     val common =  s"$dcname,${qu.mkString(":")},${qu.size},$algo,"
     Profiler.resetAll()
     val (solver, cuboid, mask, pms, numWords, numGroups, primMoments) = Profiler(s"Prepare") {
@@ -37,9 +38,10 @@ class SmallDataExperiment(ename2:String = "")(implicit timestampedfolder:String)
       val numWords = ((cuboid.size + 63) >> 6).toInt
       val numGroups = numWords >> groupSize
       val total_samples = 1024 / (1 << sliceList.size)
-      val s = new MomentSamplingWithSlicingSolver(q.size, version, sliceList, true,  Moment1Transformer[Double](), primMoments, total_samples, q)
+      //val s = new MomentSamplingWithSlicingSolver(q.size, version, sliceList, true,  Moment1Transformer[Double](), primMoments, total_samples, q)
       //val sol = new CoMoment5SliceSolverDouble(q.size, sliceList, true, Moment1Transformer[Double](), primMoments)
-      (s, cuboid, pm.cuboidIntersection, pms, numWords, numGroups, primMoments)
+      val sol = new NaiveSamplingSolver(q.size-sliceList.size, 1 << (q.size-sliceList.size))
+      (sol, cuboid, pm.cuboidIntersection, pms, numWords, numGroups, primMoments)
     }
     println(s"\t  Prepare Done")
 
@@ -49,42 +51,73 @@ class SmallDataExperiment(ename2:String = "")(implicit timestampedfolder:String)
       pms.map { pm => pm.queryIntersection -> dc.fetch2[Double](List(pm)) }
     }
     println(s"\t Moment Fetch Done.")
-    val samples_1: Array[Long] = Array[Long](0, 15, 1, 76, 2, 46, 3, 31, 4, 4, 5, 43, 6, 14, 7, 99)
-    val samples_2: Array[Long] = Array[Long](8, 85, 9, 93, 10, 5, 11, 30, 12, 63, 13, 88, 14, 89, 15, 19)
-    val samples_3: Array[Long] = Array[Long](16, 52, 17, 9, 18, 34, 19, 39, 20, 91, 21, 88, 22, 88, 23, 4)
-    solver.addSample(samples_1)
-    solver.addSample(samples_2)
-    solver.addSample(samples_3)
-    solver.convertSampleToMoments()
-    fileout.println(solver.sampleCentralMomentsToAdd.mkString(","))
-    val moment_result = Profiler("Solve") {
+    //val samples_1: Array[Long] = Array[Long](0, 15, 1, 76, 2, 46, 3, 31, 4, 4, 5, 43, 6, 14, 7, 99)
+    //val samples_2: Array[Long] = Array[Long](8, 85, 9, 93, 10, 5, 11, 30, 12, 63, 13, 88, 14, 89, 15, 19)
+    //val samples_3: Array[Long] = Array[Long](16, 52, 17, 9, 18, 34, 19, 39, 20, 91, 21, 88, 22, 88, 23, 4)
+    //val samples_4: Array[Long] = Array[Long](24, 12, 25, 5, 26, 94, 27, 18, 28, 76, 29, 82, 30, 33, 31, 56)
+    val samples_1: Array[Long] = Array[Long](0, 15, 9, 93, 2, 46, 11, 30, 4, 4, 21, 88, 6, 14, 31, 56)
+    val samples_2: Array[Long] = Array[Long](8, 85, 1, 76, 18, 34, 3, 31, 13, 88, 20, 91, 22, 88, 15, 19)
+    val samples_3: Array[Long] = Array[Long](16, 52, 25, 5, 26, 94, 19, 39, 28, 76, 5, 43, 30, 33, 7, 99)
+    val samples_4: Array[Long] = Array[Long](24, 12, 17, 9, 10, 5, 27, 18, 12, 63, 29, 82, 23, 4, 14, 89)
+    //0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+    //solver.addSample(samples_1)
+    //solver.addSample(samples_2)
+    //solver.addSample(samples_3)
+    //solver.addSample(samples_4)
+    //solver.convertSampleToMoments()
+    //fileout.println(solver.sampleCentralMomentsToAdd.mkString(","))
+    //val moment_result = Profiler("Solve") {
       //val cols = SetToInt(List(0, 1, 2, 3, 4))
       //val data = Array[Double](1768, 1623, 1581, 2093, 1661, 1878, 1515, 2083, 1513, 1544, 1470, 1917, 1644, 1634, 1700,
       //  1455, 1492, 1600, 1577, 1482, 1639, 1761, 1690, 1720, 1310, 1896, 1771, 1402, 1810, 1752, 1282, 1898)
       //val cols = SetToInt(List(5))
       //val cl = IntToSet(cols)
       //val data = Array[Double](26129.0, 27032.0)
-      fetched_cuboids.foreach { case (cols, data) => solver.add(cols, data) }
+      //fetched_cuboids.foreach { case (cols, data) => solver.add(cols, data) }
       //solver.add(cols, data)
-      solver.convertSampleToMoments()
-      solver.fillMissing() //central to raw
+      //solver.convertSampleToMoments()
+      //solver.fillMissing() //central to raw
 
-      solver.solve(true) //with heuristics to avoid negative values
-    }
-    fileout.println(primMoments.mkString(","))
-    fileout.println(trueResult.mkString(","))
-    fileout.println(solver.moments.mkString(","))
-    fileout.println(solver.sampleCentralMoments.mkString(","))
-    fileout.println(solver.ratio_All.mkString(","))
-    fileout.println(solver.timesInTotal.mkString(","))
-    fileout.println(solver.addCounter.mkString(","))
+      //solver.solve(true) //with heuristics to avoid negative values
+    //}
+    solver.addSample(samples_1)
+    val naive_res_1 = solver.solve()
+    fileout.println(naive_res_1.mkString(","))
+    val Error_add_sample_1 = SolverTools.error(trueResult, naive_res_1)
+    fileout.println(common + s"${algo},0.25,${Error_add_sample_1}")
+    solver.addSample(samples_2)
+    val naive_res_2 = solver.solve()
+    fileout.println(naive_res_2.mkString(","))
+    val Error_add_sample_2 = SolverTools.error(trueResult, naive_res_2)
+    fileout.println(common + s"${algo},0.5,${Error_add_sample_2}")
+    solver.addSample(samples_3)
+    val naive_res_3 = solver.solve()
+    fileout.println(naive_res_3.mkString(","))
+    val Error_add_sample_3 = SolverTools.error(trueResult, naive_res_3)
+    fileout.println(common + s"${algo},0.75,${Error_add_sample_3}")
+    solver.addSample(samples_4)
+    val naive_res_4 = solver.solve()
+    fileout.println(naive_res_4.mkString(","))
+    val Error_add_sample_4 = SolverTools.error(trueResult, naive_res_4)
+    fileout.println(common + s"${algo},1.0,${Error_add_sample_4}")
+
+
+    //fileout.println(primMoments.mkString(","))
+    //fileout.println(trueResult.mkString(","))
+    //fileout.println(solver.moments.mkString(","))
+    //fileout.println(solver.sampleCentralMoments.mkString(","))
+    //fileout.println(solver.ratio_All.mkString(","))
+    //fileout.println(solver.timesInTotal.mkString(","))
+    //fileout.println(solver.addCounter.zipWithIndex.mkString(","))
     //fileout.println(solver.moments.size.toString)
     //fileout.println(trueResult.size.toString)
     //fileout.println(moment_result.size.toString)
-    fileout.println(solver.moments_combined.mkString(","))
-    fileout.println(moment_result.mkString(","))
-    val momentError = SolverTools.error(trueResult, moment_result)
-    fileout.println(common+s"${algo},0.0,${momentError}")
+    //fileout.println(solver.moments_combined.mkString(","))
+    //fileout.println(moment_result.mkString(","))
+    //val momentError = SolverTools.error(trueResult, moment_result)
+    //fileout.println(common+s"${algo},1.0,${momentError}")
+    //val cuboids_input = fetched_cuboids.foreach{ case (cols, data) => (cols, data.mkString(":"))}
+    //fileout.println(fetched_cuboids.size.toString)
 
     //val samples_1: Array[Long] = Array[Long](0, 27, 1, 99, 2, 64, 3, 29, 4, 29, 5, 20, 6, 32, 7, 85)
     //solver.addSample(samples_1)

@@ -48,7 +48,7 @@ class MomentSamplingWithSlicingSolver(totalsize: Int,  version:String, sliceList
     (0 until N).foreach {
       i =>
         val numberof1 = BitUtils.sizeOfSet(i)
-        val numberoftimes = 1 << (q.size) - 1 << (q.size - numberof1)
+        val numberoftimes = 1 << (q.size - numberof1)
         timesInTotal(i) = numberoftimes
     }
     // moments(0) is known, but we need it to be present in momentsToAdd
@@ -465,7 +465,7 @@ class MomentSamplingWithSlicingSolver(totalsize: Int,  version:String, sliceList
     numSamples += numSamplesLocal
   }
   def scaleFactor = if (numSamples > 0) totalSamples / numSamples else 0
-/*
+
   def convertSampleToMoments(): Unit = {
     //First, convert sample to moments with scaling
     val result = sampleSolution.map(x => x * scaleFactor)
@@ -493,9 +493,7 @@ class MomentSamplingWithSlicingSolver(totalsize: Int,  version:String, sliceList
     sampleCentralMoments = result.clone()
   }
 
- */
-
-
+  /*
   def convertSampleToMoments() = {
     val q_converted = SetToInt(q)
 
@@ -652,7 +650,7 @@ class MomentSamplingWithSlicingSolver(totalsize: Int,  version:String, sliceList
   }
 
 
-
+   */
 
 
   def fillMissing() = {
@@ -663,7 +661,7 @@ class MomentSamplingWithSlicingSolver(totalsize: Int,  version:String, sliceList
           moments(i) += m
       }
     }
-
+    /*
         Profiler("SliceMomentsAdd") {
           sampleCentralMomentsToAdd.foreach {
             case (i, m) =>
@@ -671,13 +669,13 @@ class MomentSamplingWithSlicingSolver(totalsize: Int,  version:String, sliceList
           }
         }
 
-
+     */
     val result_temp = moments.clone()
     val result: Array[Double] = result_temp.zipWithIndex.map {
       res_ind_value =>
         val moment_portion = addCounter(res_ind_value._2).toDouble / timesInTotal(res_ind_value._2).toDouble
         ratio_All(res_ind_value._2) = moment_portion
-        if (moment_portion > 0.00003 || numSamples / totalSamples == 0) {
+        if (moment_portion > 0.015 || numSamples / totalSamples == 0 || res_ind_value._2 != 0) {
           res_ind_value._1
         }
         else {
