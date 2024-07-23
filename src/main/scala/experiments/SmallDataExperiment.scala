@@ -166,7 +166,7 @@ class SmallDataExperiment(ename2:String = "")(implicit timestampedfolder:String)
   override def run(dc: DataCube, dcname: String, qu: IndexedSeq[Int], trueResult: Array[Double], output: Boolean = true, qname: String = "", sliceValues: Seq[(Int, Int)] = Nil): Unit = {
     val increment_pm = 1
     val increment_sample = 6400
-    //run_ZipfExperiment(0, "V1", increment_pm, increment_sample, 0.0, 1L)(dc, dcname, qu, trueResult)
+    // run_ZipfExperiment(0, "V1", increment_pm, increment_sample, 0.0, 1L)(dc, dcname, qu, trueResult)
     run_SmallDataExperiment(1, "V1")(dc, dcname, qu, trueResult)
   }
 

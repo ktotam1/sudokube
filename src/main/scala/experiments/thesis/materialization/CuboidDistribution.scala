@@ -4,7 +4,7 @@ import backend.CBackend
 import combinatorics.Combinatorics
 import core.DataCube
 import experiments.{Experiment, ExperimentRunner}
-import frontend.generators.{CubeGenerator, NYC, SSB}
+import frontend.generators.{CubeGenerator, NYC, SSB, UbuntuOne}
 
 class CuboidDistribution(maxD: Int, ename2: String)(implicit timestampedFolder: String) extends Experiment(ename2, s"cuboid-distr", "thesis/materialization") {
   override def run(dc: DataCube, dcname: String, qu: IndexedSeq[Int], trueResult: Array[Double], output: Boolean, qname: String, sliceValues: Seq[(Int, Int)]): Unit = ???
@@ -43,13 +43,15 @@ object CuboidDistribution extends ExperimentRunner {
     implicit val be = CBackend.default
     val nyc = new NYC()
     val ssb = new SSB(100)
-
+    val ubuntuone = new UbuntuOne("4M")
     def func(param: String)(timestamp: String, numIters: Int) = {
       implicit val ni = numIters
       implicit val ts = timestamp
       val nycMaxD = 40
       val ssbMaxD = 30
+      val ubuntuoneMax = 30
       param match {
+        case "ubuntuone" => expt(ubuntuone, ubuntuoneMax)
         case "nyc" => expt(nyc, nycMaxD)
         case "ssb" => expt(ssb, ssbMaxD)
         case s => throw new IllegalArgumentException(s)

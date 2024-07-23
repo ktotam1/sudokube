@@ -7,7 +7,7 @@ class NaiveSamplingSolver(val qsize: Int,  totalSamples: Double) {
   var solution = Array.fill(N)(0.0)
   val unnormalizedSolution= Array.fill(N)(0L)
   var sampleSum = 0.0
-  var moments = Array.fill(qsize)(0.0)
+  // var moments = Array.fill(qsize)(0.0)
 
   /** Add samples to the existing set of samples and update results
    *  The array [[samples]] contains both keys and values.
@@ -22,10 +22,11 @@ class NaiveSamplingSolver(val qsize: Int,  totalSamples: Double) {
       val valIdx = keyIdx + 1
       val key = samples(keyIdx).toInt
       val value = samples(valIdx)
-      util.BitUtils.IntToSet(key).foreach{b => moments(b) += value}
+      // util.BitUtils.IntToSet(key).foreach{b => moments(b) += value}
       sampleSum += value
       unnormalizedSolution(key) += value
     }
+
   }
   def solve() = {
     val scale = totalSamples / numSamples

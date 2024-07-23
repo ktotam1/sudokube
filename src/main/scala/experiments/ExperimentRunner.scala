@@ -9,7 +9,7 @@ trait ExperimentRunner {
     val liftedargs = args.lift
     val param = liftedargs(0).getOrElse("noarg")
     val timestamp = liftedargs(1).getOrElse(Experiment.now())
-    val numIters = liftedargs(2).map(_.toInt).getOrElse(10)
+    val numIters = liftedargs(2).map(_.toInt).getOrElse(100)
 
     val fullexptname = getClass.getCanonicalName + ": " + param
     val hostname = InetAddress.getLocalHost().getHostName()

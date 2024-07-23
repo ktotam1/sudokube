@@ -5,7 +5,7 @@ import util.BigBinary
 import com.github.tototoshi.csv.CSVReader
 import frontend.schema.encoders.{StaticMemCol, StaticNatCol}
 
-class ZipfGenerator(alpha:Double = 1.1)(implicit backend: CBackend) extends CubeGenerator("ZipfGenerator")  {
+class ZipfGenerator(alpha:Double = 1.1)(implicit backend: CBackend) extends CubeGenerator(s"ZipfGenerator")  {
   override lazy val schemaInstance = schema()
   override val measureName: String = "value"
 

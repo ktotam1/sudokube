@@ -233,7 +233,7 @@ object ZipfExpDebug extends ExperimentRunner {
   }
   def main(args: Array[String]): Unit = {
     implicit val be = CBackend.default
-    val zipf = new ZipfGenerator2()
+    val zipf = new ZipfGenerator2(2.0)
 
     def func(param: String)(timestamp: String, numIters: Int) = {
       implicit val ni = numIters

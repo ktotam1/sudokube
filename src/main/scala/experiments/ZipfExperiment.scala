@@ -27,8 +27,7 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
     val common_2 = s"$dcname,${qu.mkString(":")},${qu.size},$algo_2,"
     val common_3 = s"$dcname,${qu.mkString(":")},${qu.size},$algo_3,"
     Profiler.resetAll()
-    //fileout.println(dc.index.n_bits)
-    /*
+    fileout.println(dc.index.n_bits)
     val (prepared, pm) = Profiler(s"${algo_2}_Prepare") {
       dc.index.prepareBatch(q) -> SolverTools.preparePrimaryMomentsForQuery[Double](q, dc.primaryMoments)
     }
@@ -38,7 +37,7 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
     var total_cuboid_cost = 0
     val fetched_cuboids = Profiler(s"${algo_2}_Fetch") {
       prepared.foreach(pm => total_cuboid_cost += 1 << pm.cuboidCost)
-      prepared.map { pm => pm.queryIntersection -> dc.fetch2[Double](List(pm)) }
+      prepared.map { pm => pm.queryIntersection -> dc.fetch2[Double](List(pm)) } 
     }
     println(s"\t Moment Fetch Done.")
     val fetchTime_Moment = Profiler.getDurationMicro(s"${algo_2}_Fetch")
@@ -52,10 +51,11 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
     val solveTime_Moment = Profiler.getDurationMicro(s"${algo_2}_Solve")
     val totalTime_Moment = prepareTime_Moment + fetchTime_Moment + solveTime_Moment
     val (error_Moment_Max,trueValue_Moment,errorAll_Moment,trueResultAll_Moment) = SolverTools.errorMaxWithTrueValue(trueResult, moment_result)
+    println(s"error all moment average: ${errorAll_Moment.foldLeft(0.0){_+_} / errorAll_Moment.length}")
     val err_ratio_Moment = error_Moment_Max.toDouble / trueValue_Moment
     val error_Moment = SolverTools.error(trueResult, moment_result)
     val error_Moment_maximum = SolverTools.errorMax(trueResult, moment_result)
-    //fileout.println("MomentResult")
+    fileout.println("MomentResult") // commented before
     val result_len_Moment = errorAll_Moment.length
     val allRatio_Moment = (0 until result_len_Moment).map(i => errorAll_Moment(i) / trueResultAll_Moment(i))
     val errorAll_Moment_res = errorAll_Moment.mkString(",")
@@ -63,15 +63,15 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
     val MaxRatio_Moment = allRatio_Moment.max
     val allRatio_Moment_res = allRatio_Moment.mkString(",")
     val moment_res = moment_result.mkString(",")
-    //fileout.println(s"$errorAll_Moment_res")
-    //fileout.println(s"$moment_res")
-    //fileout.println(s"$trueResultAll_Moment_res")
+    fileout.println(s"$errorAll_Moment_res")  //commented before
+    fileout.println(s"$moment_res") //commented before
+    fileout.println(s"$trueResultAll_Moment_res")  //commented before
     val (MaxRatio_Moment, maxIndex_m) = allRatio_Moment.zipWithIndex.maxBy { case (value, _) => value }
     val related_true_res_m = trueResultAll_Moment(maxIndex_m)
     val related_pred_res_m = errorAll_Moment(maxIndex_m)
-    //fileout.println(s"$allRatio_Moment_res")
-    //fileout.println(common_2+s"0.0,$alpha,$total_cuboid_cost,$totalTime_Moment,$fetchTime_Moment,$solveTime_Moment,$error_Moment,$trueValue_Moment,$error_Moment_Max,$err_ratio_Moment,$error_Moment_maximum,$MaxRatio_Moment")
-    //fileout.println(common_2+s"0.0,$alpha,$error_Moment,$related_pred_res_m,$related_true_res_m,$MaxRatio_Moment")
+    fileout.println(s"$allRatio_Moment_res") //commented before as well as vvvvv
+    fileout.println(common_2+s"0.0,$alpha,$total_cuboid_cost,$totalTime_Moment,$fetchTime_Moment,$solveTime_Moment,$error_Moment,$trueValue_Moment,$error_Moment_Max,$err_ratio_Moment,$error_Moment_maximum,$MaxRatio_Moment")
+    fileout.println(common_2+s"0.0,$alpha,$error_Moment,$related_pred_res_m,$related_true_res_m,$MaxRatio_Moment") //commented before as well as ^^^^^^
     val (naive_solver, cuboid, mask, numWords, numTotalWords, numGroups) = Profiler(s"${algo_1}_Prepare") {
       val pm = dc.index.prepareNaive(q).head
       val be = dc.cuboids.head.backend
@@ -108,7 +108,7 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
     val error_Online = SolverTools.error(trueResult, online_result)
     val error_Online_maximum = SolverTools.errorMax(trueResult, online_result)
     val totalTime_Online = prepareTime_Online + fetchTime_Online + solveTime_Online
-    //fileout.println("OnlineResult")
+    fileout.println("OnlineResult") //commented before
     val result_len_Online = errorAll_Online.length
     val allRatio_Online = (0 until result_len_Online).map(i => errorAll_Online(i) / trueResultAll_Online(i))
     val errorAll_Online_res = errorAll_Online.mkString(",")
@@ -126,7 +126,7 @@ class ZipfExperiment(ename2:String = "")(implicit timestampedfolder:String) exte
     fileout.println(s"$allRatio_Online_res")
     fileout.println(common_1 + s"$fraction,$alpha,$error_Online,$related_pred_res,$related_true_res,$MaxRatio_Online")
 
-     */
+     
 
     val (naive_solver50, cuboid50, mask50, numWords50, numGroups50) = Profiler(s"${algo_3}_Prepare") {
       val pm50 = dc.index.prepareNaive(q).head
@@ -267,7 +267,7 @@ object ZipfExperiment extends ExperimentRunner {
   }
   def main(args: Array[String]): Unit = {
     implicit val be = CBackend.default
-    val zipf = new ZipfGenerator2()
+    val zipf = new ZipfGenerator2(2.0)
 
     def func(param: String)(timestamp: String, numIters: Int) = {
       implicit val ni = numIters
@@ -276,7 +276,7 @@ object ZipfExperiment extends ExperimentRunner {
         case "zipf-prefix" => qsize(zipf, true)
         case "zipf-random" => qsize(zipf, false)
       }
-    }
+    } 
 
     run_expt(func)(args)
   }
