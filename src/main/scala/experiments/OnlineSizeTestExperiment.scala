@@ -21,10 +21,7 @@ class OnlineSizeTestExperiment(ename2:String = "", logN: Int, minD: Int, maxD: I
     def run_TestExperiment(groupSize: Int, version: String, increment_pm: Int, increment_sample: Int, alpha: Double, total_tuples:Long)
     (dc: DataCube, dcname: String, qu: IndexedSeq[Int], trueResult: Array[Double]) = {
         val q = qu.sorted
-        val (prepared, pm1) = dc.index.prepareBatch(q) -> SolverTools.preparePrimaryMomentsForQuery[Double](q, dc.primaryMoments)
-        var total_cuboid_cost = 0
-        prepared.foreach(pm => total_cuboid_cost += 1 << pm.cuboidCost)
-        val fetched_cuboids = prepared.map { pm => pm.queryIntersection -> dc.fetch2[Double](List(pm)) } 
+       
         Profiler.reset(List("Hybrid","Naive","Moment"))
         val (naive_solver, cuboid, mask, pms) = Profiler(s"Prepare") {
             val pm = dc.index.prepareNaive(q).head
@@ -38,7 +35,7 @@ class OnlineSizeTestExperiment(ename2:String = "", logN: Int, minD: Int, maxD: I
             val pms = dc.index.prepareBatch(q)
             (sh, cuboid, pm.cuboidIntersection, pms)
         }
-
+        println(s"pms: ${pms}")
         cuboid.randomShuffle()  
         //Add cuboids to hybrid solver 
 
@@ -97,6 +94,10 @@ class OnlineSizeTestExperiment(ename2:String = "", logN: Int, minD: Int, maxD: I
      
 
         val moment_result = Profiler("Moment") {
+            val (prepared, pm1) = dc.index.prepareBatch(q) -> SolverTools.preparePrimaryMomentsForQuery[Double](q, dc.primaryMoments)
+            var total_cuboid_cost = 0
+            prepared.foreach(pm => total_cuboid_cost += 1 << pm.cuboidCost)
+            val fetched_cuboids = prepared.map { pm => pm.queryIntersection -> dc.fetch2[Double](List(pm)) } 
             val s = new CoMoment5SolverDouble(q.size, true, null, pm1)
             fetched_cuboids.foreach { case (cols, data) => s.add(cols, data) }
             s.fillMissing()
@@ -179,7 +180,7 @@ object OnlineSizeTestExperiment extends ExperimentRunner {
         implicit val be = CBackend.default
         val argument = (5,10,10,5)
         
-        val ubuntuones = List(new UbuntuOne("20K"), new UbuntuOne("2M"), new UbuntuOne("4M"), new UbuntuOne("10M"))
+        val ubuntuones = List(new UbuntuOne("20K"), new UbuntuOne("20K"), new UbuntuOne("2M"), new UbuntuOne("4M"), new UbuntuOne("10M"))
         for (ubuntuone <- ubuntuones){
             def func(param: String)(timestamp: String, numIters: Int) = {
                 implicit val ni = numIters

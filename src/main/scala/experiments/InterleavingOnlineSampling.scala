@@ -210,6 +210,7 @@ object InterleavingOnlineSampling extends ExperimentRunner {
     val (minD, maxD) = cg match {
       case n: NYC => (18, 40)
       case s: SSB => (14, 30)
+      case u: UbuntuOne => (10,10)
     }
     val logN = 9
     val dc = if (isSMS) cg.loadSMS(logN, minD, maxD) else cg.loadRMS(logN, minD, maxD)
@@ -242,7 +243,7 @@ object InterleavingOnlineSampling extends ExperimentRunner {
   }
   def main(args: Array[String]): Unit = {
     implicit val be = CBackend.default
-    val ssb = new SSB(1)
+    val ssb = new UbuntuOne("10M")
 
     def func(param: String)(timestamp: String, numIters: Int) = {
       implicit val ni = numIters

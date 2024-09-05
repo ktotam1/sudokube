@@ -17,43 +17,21 @@ class SingleTimedAddSamplesExperiment(ename2:String = "", logN: Int, minD: Int, 
     val domain = 25
     val ls = List(logN, minD, maxD, qd)
     fileout.println(ls.mkString(","))
-    val header= "logn,moment_max_ratio,moment_avg_ratio,moment_time,query_materialized"
+    val header= "logn,mind,maxd,qd,moment_max_ratio,moment_error,moment_time,num_materialized_cuboids"
 
     fileout.println(header)
     def run_TestExperiment(groupSize: Int, version: String, increment_pm: Int, increment_sample: Int, alpha: Double, total_tuples:Long)
     (dc: DataCube, dcname: String, qu: IndexedSeq[Int], trueResult: Array[Double]) = {
+        println(ls)
         val q = qu.sorted
         val (prepared, pm1) = dc.index.prepareBatch(q) -> SolverTools.preparePrimaryMomentsForQuery[Double](q, dc.primaryMoments)
         var total_cuboid_cost = 0
         prepared.foreach(pm => total_cuboid_cost += 1 << pm.cuboidCost)
         val fetched_cuboids = prepared.map { pm => pm.queryIntersection -> dc.fetch2[Double](List(pm)) } 
-        println("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
-        // println(pm1.map((x,y)=> (BitUtils.IntToSet(x).reverse.toVector,y )))
-        fetched_cuboids.foreach{ case (x,y)=>println( BitUtils.IntToSet(x).reverse.toVector,y.toList)}
-        println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-        Profiler.reset(List("Hybrid","Naive","Moment"))
-        val (cuboid, mask, pms) = Profiler(s"Prepare") {
-            val pm = dc.index.prepareNaive(q).head
-            val be = dc.cuboids.head.backend
-            val cuboid = dc.cuboids(pm.cuboidID).asInstanceOf[be.SparseCuboid]
-            // println(cuboid.n_bits, dc.index.n_bits)
-            // assert(cuboid.n_bits == dc.index.n_bits)
-            val primMoments = SolverTools.preparePrimaryMomentsForQuery[Double](q, dc.primaryMoments)
-            val pms = dc.index.prepareBatch(q)
-            (cuboid, pm.cuboidIntersection, pms)
-        }
+        
+        Profiler.reset(List("Moment"))
+ 
 
-
-        cuboid.randomShuffle()  
-        //Add cuboids to hybrid solver 
-     
-       
-    
-        val pm = dc.index.prepareNaive(q).head
-        val be = dc.cuboids.head.backend
-        val numWords = ((cuboid.size + 63) >> 6).toInt
-        val numGroups = numWords >> groupSize
-    
         val moment_result = Profiler("Moment") {
             val s = new CoMoment5SolverDouble(q.size, true, null, pm1)
             fetched_cuboids.foreach { case (cols, data) => s.add(cols, data) }
@@ -68,22 +46,20 @@ class SingleTimedAddSamplesExperiment(ename2:String = "", logN: Int, minD: Int, 
             val temp = x.toList.zip(y.toList).map(z => (z._1 - z._2).abs / y.sum)
             temp.sum / temp.length
         }
-        // fetched_cuboids.foreach { case (col, _) => 
-        //     if(qu.toSet.subsetOf( BitUtils.IntToSet(col).toSet)){ 
-        //         println(f"${qu} is a subset of ${BitUtils.IntToSet(col).toSet}!")
-        //     } else {
-        //         println(f"${qu} is NOT a subset of ${BitUtils.IntToSet(col).toSet}!")
-        //     }
-        // }
-        
+       
 
         val maxRatio_Moment = allRatio_Moment.max
         val avgRatio_Moment = allRatio_Moment.foldLeft(0.0)(_ + _) / allRatio_Moment.length
         val moment_time = Profiler.getDurationMicro("Moment")
 
       
-
-        fileout.println(s"${logN},${maxRatio_Moment},${avgRatio_Moment},${moment_time}")
+        // println("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+        // fetched_cuboids.foreach{ case (x,y)=>println(BitUtils.IntToSet(x).reverse.toVector)}
+        // println(fetched_cuboids.length)
+        // println(s"${logN},${maxRatio_Moment},${avgRatio_Moment},${moment_time}")
+        // println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+        //val header= "logn,mind,maxd,qd,moment_max_ratio,moment_error,moment_time,num_materialized_cuboids"
+        fileout.println(s"${logN},${minD},${maxD},${qd},${maxRatio_Moment},${avgRatio_Moment},${moment_time},${fetched_cuboids.length}")
     }
     
     
@@ -124,15 +100,15 @@ object SingleTimedAddSamplesExperiment extends ExperimentRunner {
             while(generator_counts < numIters)
             {
                 val query = Tools.generateQuery(isSMS, cg.schemaInstance, qs)
-                val prepareNaive = baseCuboid.index.prepareNaive(query)//dc.index.prepareNaive(query)
-                if (prepareNaive.head.cuboidCost == sch.n_bits) {
+                // val prepareNaive = baseCuboid.index.prepareNaive(query)//dc.index.prepareNaive(query)
+                // if (prepareNaive.head.cuboidCost == sch.n_bits) {
                     val trueResult = dc.naive_eval(query)
                     expt.run(dc, dc.cubeName, query, trueResult)
                     generator_counts += 1
-                }
-                else {
-                    println(s"skipping query $query that does not use basecuboid in NaiveSolver")
-                }
+                // }
+                // else {
+                //     println(s"skipping query $query that does not use basecuboid in NaiveSolver")
+                // }
             }
         }
         be.reset
@@ -144,33 +120,16 @@ object SingleTimedAddSamplesExperiment extends ExperimentRunner {
         println("starting...")
 
         val arguments = List(
-            // (4,4,7,2), 
-            // (8,10,13,4),
-            // (8,10,13,8),
-            // (8,10,13,10),
-            // (9,10,30,8),
-            // (9,10,30,10),
-            // (10,10,18,8),
-            // (10,10,18,10)
-            // (10,10,18,12),
-            // (4,4,7,4)
-            // (9,10,10,4),
-
-            // (4,10,10,5),
-            // (4,10,10,5),
-            // (5,10,10,5),
-            // (6,10,10,5),
-            // (7,10,10,5),
-            // (8,10,10,5),
-            // (9,10,10,5),
-            (10,10,10,4)
-            // (5,10,10,),
-            // (5,10,10,7),
-            // (5,10,10,8),
-            // (5,10,10,9),
-            // (5,10,10,10),
-            // (5,10,10,11),
-        ).reverse
+            (10,10,10,4),
+            (10,10,10,4),
+            (10,10,10,5),
+            (10,10,10,6),
+            (10,10,10,7),
+            (10,10,10,8),
+            (10,10,10,9),
+            (10,10,10,10),
+            (10,10,10,11)
+        )
         for (argument <- arguments){
             def func(param: String)(timestamp: String, numIters: Int) = {
                 implicit val ni = numIters

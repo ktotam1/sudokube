@@ -72,6 +72,7 @@ class TimedAddSamplesExperiment(ename2:String = "", logN: Int, minD: Int, maxD: 
          var hybrid_result = Profiler("Hybrid") {
            hybrid_solver.solve()
         }
+        println(s"Hybrid : ${Profiler.getDurationMicro("Hybrid")}")
         val (error_Hybrid_Max,trueValue_Hybrid,errorAll_Hybrid,trueResultAll_Hybrid) = SolverTools.errorMaxWithTrueValue(trueResult, hybrid_result)
         val result_len_Hybrid = errorAll_Hybrid.length
         val allRatio_Hybrid = (0 until result_len_Hybrid).map(i => errorAll_Hybrid(i) / trueResultAll_Hybrid.sum)
@@ -110,7 +111,6 @@ class TimedAddSamplesExperiment(ename2:String = "", logN: Int, minD: Int, maxD: 
             } 
              if (i % (numGroups / (domain-1)) == 0) {
                     k += 1
-                    println(k)
 
                     Profiler("Hybrid"){
                         hybrid_result = hybrid_solver.solve() 

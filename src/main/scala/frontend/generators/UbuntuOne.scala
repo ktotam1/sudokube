@@ -55,21 +55,13 @@ object UbuntuOne {
       val seedValue = 0L
 
       val arg = args.lift(0).getOrElse("all")
-      val sizes = List("20K", "2M", "4M", "10M")
+      val sizes = List("20K", "40M")
       val params = List(
       // (4,4,7),
       // (8,10,13),
       // (9,10,30),
       // (10,10,18),
-        (2,10,10),
-        (3,10,10),
-        (4,10,10),
-        (5,10,10),
-        (6,10,10),
-        (7,10,10),
-        (8,10,10),
-        (9,10,10),
-        (10,10,10)
+        (1,10,20)
       )
       for (size <- sizes) {
         if ((arg equals "base") || (arg equals "all")) {

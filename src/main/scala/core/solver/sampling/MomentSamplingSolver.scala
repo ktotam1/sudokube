@@ -63,7 +63,9 @@ class MomentSamplingSolver(val qsize: Int, primaryMoments: Seq[(Int, Double)], v
     }
     val cuboid_moments = result
     newMomentIndices.foreach { case (i0, i) =>
-      momentsToAdd += i -> cuboid_moments(i0)
+      synchronized {
+        momentsToAdd += i -> cuboid_moments(i0)
+      }
       knownSet += i
     }
   }
@@ -161,11 +163,13 @@ class MomentSamplingSolver(val qsize: Int, primaryMoments: Seq[(Int, Double)], v
         logh += 1
       }
     }
+    synchronized {
     //Next, overwrite known moments
-    momentsToAdd.foreach { case (i, m) =>
-      //println(s"Moment $i oldvalue = ${result(i)}  newvalue = ${m}")
-      assert(version !=  "V3")
-      result(i) = m
+     momentsToAdd.foreach { case (i, m) =>
+        //println(s"Moment $i oldvalue = ${result(i)}  newvalue = ${m}")
+        assert(version !=  "V3")
+        result(i) = m
+      }
     }
 
     //Convert to values
